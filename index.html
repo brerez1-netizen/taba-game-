@@ -12,17 +12,13 @@
     body { margin: 0; font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; overflow-x: hidden; }
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
     .screen.active { display: flex; }
-    
     .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 900px; margin: 0 auto; padding: 10px; }
     .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: #1e293b; }
     .cell-num { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; opacity: 0.6; color: white; }
-    
     .pawn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.2rem; }
-    
     .btn { background: var(--blue); color: var(--dark); padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
     .dice-btn { width: 100px; height: 100px; font-size: 3rem; border-radius: 25px; border: none; background: var(--blue); color: white; }
     .dice-btn:disabled { background: #444; opacity: 0.5; }
-    
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .modal-content { background: #1e293b; width: 100%; max-width: 450px; border-radius: 20px; padding: 30px; border: 2px solid var(--blue); }
   </style>
@@ -78,30 +74,37 @@
   };
   firebase.initializeApp(config);
   const db = firebase.database();
-  let myId, myRole, playersCache = {};
+  let myId, myRole;
 
-  const info = {
-    1: "יוזמה: הכל מתחיל מרעיון.", 15: "בדיקה מקדמית: תנאי סף.", 22: "הפקדה: התכנית נחשפת.",
-    30: "התנגדויות: שמיעת הציבור.", 42: "אישור השר: חתימה סופית.", 50: "🎉 מתן תוקף!"
+  // פירוט 50 שלבי התב"ע
+  const tabaInfo = {
+    1: "יוזמה ותכנון רעיוני", 2: "איסוף נתונים ומדידות", 3: "פגישת הנחיה בוועדה", 4: "עריכת מסמכי התכנית", 5: "תיאום עם רשויות ותשתיות",
+    6: "הגשת התכנית למערכת המקוונת", 7: "בדיקת תנאי סף", 8: "תיקון ליקויים בבדיקה", 9: "קליטת התכנית", 10: "הפצה להערות גופים",
+    11: "דיון פנימי בצוות התכנון", 12: "הצגה בפני מהנדס העיר", 13: "גיבוש המלצת מהנדס", 14: "דיון במליאת הוועדה המקומית", 15: "החלטה על המלצה להפקדה",
+    16: "העברת התכנית לוועדה המחוזית", 17: "בדיקה תכנונית במחוז", 18: "דיון בוועדת משנה למקצועית", 19: "תיקונים לפי החלטת וועדת משנה", 20: "בדיקה משפטית במחוז",
+    21: "אישור הפקדה בתנאים", 22: "מילוי תנאי הפקדה", 23: "פרסום הודעה על הפקדה בעיתונים", 24: "פרסום ברשומות (י"פ)", 25: "הצבת שלטים בשטח התכנית",
+    26: "משלוח הודעות אישיות לגובלים", 27: "תקופת 60 יום להגשת התנגדויות", 28: "איסוף התנגדויות מהציבור", 29: "חוות דעת מהנדס על ההתנגדויות", 30: "מינוי חוקר לשמיעת התנגדויות",
+    31: "דיון בשמיעת התנגדויות", 32: "סיכום המלצות החוקר", 33: "דיון בוועדה למתן תוקף", 34: "החלטה לאישור בתנאים", 35: "תיקון התכנית לפי החלטת האישור",
+    36: "בדיקת 'גרסה סופית' במערכת", 37: "חתימות יו'ר וועדה ומתכנן מחוז", 38: "אישור שר הפנים (במקרים מסוימים)", 39: "פרסום הודעה על אישור בעיתונים", 40: "פרסום אישור ברשומות",
+    41: "המתנה ל-15 יום לכניסה לתוקף", 42: "הכנת תכנית לצרכי רישום (תצ'ר)", 43: "אישור תצ'ר במרכז למיפוי ישראל", 44: "תשלום היטלי השבחה", 45: "בקשה להיתר בנייה מכוח התכנית",
+    46: "בדיקת התאמה להיתר", 47: "אישור תכנית עיצוב אדריכלי", 48: "פיתוח תשתיות בשטח", 49: "תחילת עבודות בנייה", 50: "מזל טוב! הפרויקט מאוכלס"
   };
 
   function initView(r) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     if(r === 'teacher') {
-      db.ref('game').update({ state: 'lobby', turn: 0, modal: false });
+      db.ref('/').update({ game: { state: 'lobby', turn: 0, modal: false } });
       db.ref('players').remove();
       document.getElementById('lobbyScreen').classList.add('active');
       new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0] + "?role=student", width: 140, height: 140 });
       db.ref('players').on('value', s => {
-        playersCache = s.val() || {};
-        const ids = Object.keys(playersCache);
-        document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${playersCache[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold; margin:5px;">${playersCache[id].avatar} ${playersCache[id].name}</div>`).join('');
+        const p = s.val() || {};
+        const ids = Object.keys(p);
+        document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold; margin:5px;">${p[id].avatar} ${p[id].name}</div>`).join('');
         document.getElementById('lCount').innerText = `${ids.length} מחוברים`;
         document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
       });
-    } else { 
-      document.getElementById('setupScreen').classList.add('active'); 
-    }
+    } else { document.getElementById('setupScreen').classList.add('active'); }
   }
 
   if(window.location.search.includes('role=student')) initView('student');
@@ -125,7 +128,7 @@
         const ids = Object.keys(ps);
         const isMyTurn = ids[g.turn] === myId;
         document.getElementById('diceBtn').disabled = !isMyTurn || g.modal;
-        document.getElementById('statusText').innerText = isMe ? "תורכם! הטילו קובייה" : (ids[g.turn] ? `תור של: ${ps[ids[g.turn]].name}` : "ממתינים...");
+        document.getElementById('statusText').innerText = isMyTurn ? "תורכם! הטילו קובייה" : (ids[g.turn] ? `תור של: ${ps[ids[g.turn]].name}` : "ממתינים...");
         if(g.modal && isMyTurn) showModal(g.activeCell); else if(!g.modal) closeModal();
       });
     });
@@ -133,7 +136,7 @@
 
   function startGame() { 
     db.ref('game').update({ state: 'playing' }); 
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('lobbyScreen').classList.remove('active');
     document.getElementById('gameScreen').classList.add('active');
     initBoard(); 
     listenTeacher(); 
@@ -192,8 +195,8 @@
   }
 
   function showModal(n) {
-    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0; font-size:1.2rem;">${info[n] || 'מתקדמים בתהליך התכנון הסטטוטורי...'}</p>` + 
-      (myId ? `<button class="btn" onclick="next()">הבנתי, המשך</button>` : `<p>השחקן קורא את השלב...</p>`);
+    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0; font-size:1.2rem; font-weight:bold;">${tabaInfo[n] || 'מתקדמים בתהליך התכנון...'}</p>` + 
+      (myId ? `<button class="btn" onclick="next()">המשך</button>` : `<p>השחקן קורא...</p>`);
     document.getElementById('mainModal').style.display = 'flex';
   }
 
