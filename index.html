@@ -28,8 +28,7 @@
 <div id="lobbyOverlay">
   <h1 style="color: var(--blue); font-size: 3rem;">🏙️ משחק תכנון העיר</h1>
   <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
-  <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק ובדוק פריסה</button>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק ובדוק תמונות</button>
 </div>
 
 <div id="gameScreen" class="main-layout" style="visibility: hidden;">
@@ -62,18 +61,22 @@
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       
       for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const stagePrefix = Math.ceil(num / 10);
-        const fileName = String(num).padStart(2, '0');
+        const globalNum = (r * 10) + c;
+        const stagePrefix = r + 1; // שורה 1 = m1, שורה 2 = m2 וכו'
+        
+        // החישוב המדויק לפי מה שראינו ב-GIT: 
+        // כל שורה (עשירייה) מתחילה מ-01 עד 10
+        const innerNum = c; 
+        const fileName = String(innerNum).padStart(2, '0');
         
         const cell = document.createElement('div');
-        cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
-        cell.id = `cell-${num}`;
+        cell.className = 'cell' + (milestones.includes(globalNum) ? ' milestone' : '');
+        cell.id = `cell-${globalNum}`;
         
-        // תיקון סופי: images/mX-YY.jpeg כאשר YY הוא המספר הרץ 01-50
+        // נתיב סופי: images/mX-YY.jpeg
         const imgPath = `images/m${stagePrefix}-${fileName}.jpeg?v=${ts}`;
         cell.style.backgroundImage = `url('${imgPath}')`; 
-        cell.innerHTML = `<div class="cell-num">${num}</div>`;
+        cell.innerHTML = `<div class="cell-num">${globalNum}</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
@@ -117,18 +120,10 @@
         if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור: " + ps[ids[turnIdx]].name;
       });
     });
-    db.ref('game').on('value', s => {
-      const g = s.val();
-      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1];
-    });
   }
 
   clearDatabase();
   new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
-  db.ref('players').on('value', s => {
-    const p = s.val() || {};
-    document.getElementById('playersLobby').innerHTML = Object.keys(p).map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
-  });
 </script>
 </body>
 </html>
