@@ -2,59 +2,66 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ לוח תכנון העיר - ארז ברוכי</title>
+  <title>🏙️ מרכז בקרה - תכנון העיר | ארז ברוכי</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; }
     html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
-    .screen { display: none; height: 100vh; width: 100vw; flex-direction: column; align-items: center; justify-content: flex-start; }
-    .active { display: flex; }
-
-    /* גריד גמיש בפריסת נחש */
-    .board-container { width: 95vw; height: 80vh; margin-top: 20px; display: flex; flex-direction: column-reverse; gap: 10px; }
-    .board-row { display: flex; flex: 1; gap: 10px; width: 100%; }
-    .board-row-reverse { flex-direction: row-reverse; }
-
-    .cell { 
-      flex: 1; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
-      background-size: cover; background-position: center; position: relative;
-      background-color: #1e293b; box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
-      transition: transform 0.3s;
-    }
     
-    /* הגדלת נקודות ציון משמעותיות */
-    .milestone { border: 4px solid var(--gold); transform: scale(1.05); z-index: 5; box-shadow: 0 0 20px rgba(250, 204, 21, 0.4); }
-    .cell-num { position: absolute; top: 5px; right: 8px; font-weight: bold; color: var(--blue); font-size: 1.1rem; text-shadow: 2px 2px 4px black; }
+    .main-layout { display: flex; width: 100vw; height: 100vh; }
+    
+    /* הלוח - צד שמאל */
+    .board-section { flex: 3; display: flex; flex-direction: column-reverse; padding: 15px; gap: 8px; }
+    .board-row { display: flex; flex: 1; gap: 8px; }
+    .row-reverse { flex-direction: row-reverse; }
 
-    .pawn { 
-      width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      position: absolute; z-index: 100; transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      border: 3px solid #000; font-size: 2rem; box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-    }
-    .active-pawn { animation: pulse 1.5s infinite; border-color: white; transform: scale(1.2) translateY(-10px); }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
+    /* סרגל בקרה - צד ימין */
+    .sidebar { flex: 1; background: rgba(15, 23, 42, 0.95); border-left: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.5); }
+    
+    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
+    .milestone { border: 4px solid var(--gold); transform: scale(1.02); z-index: 5; }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; }
 
-    .status-bar { height: 15vh; width: 100%; display: flex; justify-content: center; align-items: center; border-top: 3px solid var(--blue); background: rgba(0,0,0,0.9); }
-    .active-info { background: #1e293b; padding: 15px 50px; border-radius: 50px; border: 2px solid var(--blue); font-size: 2.2rem; font-weight: bold; }
+    /* רשימת שחקנים */
+    .player-entry { background: var(--card); margin-bottom: 10px; padding: 15px; border-radius: 15px; display: flex; align-items: center; justify-content: space-between; border-right: 5px solid transparent; transition: 0.3s; }
+    .active-player-ui { border-right-color: var(--gold); background: #2d3748; transform: scale(1.05); box-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+    
+    .dice-display { font-size: 5rem; margin: 20px 0; text-shadow: 0 0 20px var(--blue); animation: bounce 1s infinite alternate; }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+
+    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 15px rgba(0,0,0,0.8); }
     
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; z-index: 1000; align-items: center; justify-content: center; }
-    .modal-content { background: #1e293b; width: 600px; padding: 40px; border-radius: 30px; border: 5px solid var(--blue); text-align: center; }
+    .modal-content { background: var(--card); width: 550px; padding: 40px; border-radius: 30px; border: 4px solid var(--blue); text-align: center; }
   </style>
 </head>
 <body>
 
-<div id="lobbyScreen" class="screen active">
+<div id="lobbyScreen" style="display:flex; height:100vh; flex-direction:column; align-items:center; justify-content:center;">
   <h1 style="font-size: 3.5rem; color: var(--blue);">🏙️ משחק תכנון העיר</h1>
-  <div style="background:white; padding:15px; border-radius:20px; margin:20px;"><div id="qrcode"></div></div>
-  <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:20px;"></div>
-  <button class="btn" style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; cursor:pointer; font-weight:bold; border-radius:15px;" onclick="startGame()">🚀 התחל משחק</button>
+  <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
+  <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק</button>
 </div>
 
-<div id="gameScreen" class="screen">
-  <div class="board-container" id="boardContainer"></div>
-  <div class="status-bar"><div class="active-info">קבוצה פעילה: <span id="activeName" style="color:var(--blue)">-</span></div></div>
+<div id="gameScreen" class="main-layout" style="display:none;">
+  <div class="board-section" id="boardContainer"></div>
+
+  <div class="sidebar">
+    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">סטטוס תהליך</h2>
+    
+    <div id="diceArea" style="text-align:center;">
+        <div class="dice-display" id="mainDice">🎲</div>
+        <div id="turnText" style="font-size:1.2rem; margin-bottom:20px;">ממתין להטלה...</div>
+    </div>
+
+    <div id="playersStatusList" style="flex:1; overflow-y:auto;">
+        </div>
+
+    <div style="font-size:0.8rem; opacity:0.5; text-align:center;">קורס תחיקת הבנייה | ארז ברוכי</div>
+  </div>
 </div>
 
 <div id="mainModal" class="modal"><div class="modal-content" id="modalContent"></div></div>
@@ -67,24 +74,22 @@
   };
   firebase.initializeApp(config);
   const db = firebase.database();
-
-  // ציוני דרך להגדלה
-  const milestones = [1, 7, 15, 21, 30, 42, 50];
+  const bigSteps = [1, 15, 21, 30, 42, 50];
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
     container.innerHTML = '';
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' board-row-reverse' : '');
+      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       for(let c=1; c<=10; c++) {
-        const i = (r * 10) + c;
-        const stage = Math.ceil(i/10);
+        const num = (r * 10) + c;
+        const stage = Math.ceil(num/10);
         const cell = document.createElement('div');
-        cell.className = 'cell' + (milestones.includes(i) ? ' milestone' : '');
-        cell.id = `cell-${i}`;
-        cell.style.backgroundImage = `url('images/m${stage}-${String(i).padStart(2,'0')}.jpeg')`;
-        cell.innerHTML = `<div class="cell-num">${i}</div>`;
+        cell.className = 'cell' + (bigSteps.includes(num) ? ' milestone' : '');
+        cell.id = `cell-${num}`;
+        cell.style.backgroundImage = `url('images/m${stage}-${String(num).padStart(2,'0')}.jpeg')`;
+        cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
@@ -92,9 +97,9 @@
   }
 
   function startGame() {
-    db.ref('game').update({ state: 'playing' });
-    document.getElementById('lobbyScreen').classList.remove('active');
-    document.getElementById('gameScreen').classList.add('active');
+    db.ref('game').update({ state: 'playing', lastRoll: 0 });
+    document.getElementById('lobbyScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'flex';
     initBoard();
     listenPlayers();
   }
@@ -102,34 +107,49 @@
   function listenPlayers() {
     db.ref('players').on('value', s => {
       const ps = s.val() || {};
+      const ids = Object.keys(ps);
       document.querySelectorAll('.pawn').forEach(p => p.remove());
+      
       db.ref('game').once('value', gs => {
         const turnIdx = gs.val().turn;
-        Object.keys(ps).forEach((id, idx) => {
+        const listHtml = ids.map((id, idx) => {
           const p = ps[id];
+          const isActive = idx === turnIdx;
+          
+          // יצירת חייל על הלוח
           const pawn = document.createElement('div');
-          pawn.className = 'pawn' + (idx === turnIdx ? ' active-pawn' : '');
+          pawn.className = 'pawn' + (isActive ? ' active-pawn' : '');
           pawn.innerText = p.avatar; pawn.style.background = p.color;
           document.body.appendChild(pawn);
           const cell = document.getElementById(`cell-${p.pos + 1}`);
           if(cell) {
             const r = cell.getBoundingClientRect();
-            pawn.style.top = (r.top + 10) + "px"; pawn.style.left = (r.left + 10) + "px";
+            pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
           }
-        });
+
+          return `
+            <div class="player-entry ${isActive ? 'active-player-ui' : ''}">
+              <div style="font-size:2rem;">${p.avatar}</div>
+              <div style="flex:1; margin-right:15px;">
+                <div style="font-weight:bold;">${p.name}</div>
+                <div style="font-size:0.8rem; color:var(--blue);">משבצת: ${p.pos + 1}</div>
+              </div>
+              <div style="font-size:1.2rem; font-weight:bold; color:var(--gold);">${(p.pos + 1) * 10} נק'</div>
+            </div>`;
+        }).join('');
+        
+        document.getElementById('playersStatusList').innerHTML = listHtml;
+        if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור קבוצת: " + ps[ids[turnIdx]].name;
       });
     });
 
     db.ref('game').on('value', s => {
       const g = s.val();
-      db.ref('players').once('value', psSnap => {
-        const ps = psSnap.val() || {}; const ids = Object.keys(ps);
-        if(ids[g.turn]) document.getElementById('activeName').innerText = ps[ids[g.turn]].name;
-        document.getElementById('mainModal').style.display = g.modal ? 'flex' : 'none';
-        if(g.modal) {
-          document.getElementById('modalContent').innerHTML = `<h1 style="color:var(--blue)">משבצת ${g.activeCell}</h1><p style="font-size:2rem; margin:20px 0;">השלב הסטטוטורי בבדיקה...</p>`;
-        }
-      });
+      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = g.lastRoll;
+      document.getElementById('mainModal').style.display = g.modal ? 'flex' : 'none';
+      if(g.modal) {
+        document.getElementById('modalContent').innerHTML = `<h1 style="color:var(--blue)">משבצת ${g.activeCell}</h1><p style="font-size:1.8rem; margin:20px 0;">השלב הסטטוטורי בבדיקה...</p>`;
+      }
     });
   }
 
