@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ לוח תכנון העיר - ארז ברוכי</title>
+  <title>🏙️ לוח תכנון העיר - ארז ברוכי (מצב בדיקה)</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -15,31 +15,32 @@
     .row-reverse { flex-direction: row-reverse; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .milestone { border: 4px solid var(--gold); transform: scale(1.03); z-index: 5; box-shadow: 0 0 15px var(--gold); }
+    .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.02); z-index: 5; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-    .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
-    .active-p { border-right-color: var(--gold); background: #2d3748; }
-    .dice-box { font-size: 5rem; text-align: center; margin: 15px 0; }
-    .pawn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 2rem; }
+    .status-item { background: var(--card); padding: 15px; border-radius: 12px; border-right: 4px solid var(--blue); margin-bottom: 10px; }
     #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay">
-  <h1 style="color: var(--blue); font-size: 3rem;">🏙️ משחק תכנון העיר</h1>
+  <h1 style="color: var(--blue); font-size: 3rem;">🏙️ לוח תכנון העיר - בדיקת נראות</h1>
   <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
   <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק</button>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל בדיקת לוח</button>
 </div>
 
 <div id="gameScreen" class="main-layout" style="visibility: hidden;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב הקבוצות</h2>
-    <div class="dice-box" id="mainDice">🎲</div>
-    <div id="turnText" style="font-size:1.5rem; text-align:center; margin-bottom:20px; font-weight:bold; color:var(--gold);">-</div>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
+    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב תהליך</h2>
+    <div style="font-size: 5rem; text-align: center; margin: 15px 0;">🎲</div>
+    <div id="playersStatusList" style="flex:1; overflow-y:auto;">
+        <div class="status-item">
+            <div style="font-weight:bold;">מצב בדיקה</div>
+            <div style="font-size:0.8rem; opacity:0.6;">כל התמונות נמשכות ממחיצה אחת</div>
+        </div>
+    </div>
   </div>
 </div>
 
@@ -56,7 +57,7 @@
   function initBoard() {
     const container = document.getElementById('boardContainer');
     container.innerHTML = '';
-    const timestamp = new Date().getTime(); // למניעת בעיות זיכרון דפדפן
+    const ts = new Date().getTime(); 
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
@@ -68,8 +69,8 @@
         cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
         cell.id = `cell-${num}`;
         
-        // טעינה עם Cache-Busting
-        const imgPath = `images/m${stage}-${fileName}.jpeg?v=${timestamp}`;
+        // תיקון נתיב: הכל יושב יחד תחת images/
+        const imgPath = `images/m${stage}-${fileName}.jpeg?v=${ts}`;
         cell.style.backgroundImage = `url('${imgPath}')`; 
         cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
@@ -79,53 +80,13 @@
   }
 
   function startGame() {
-    db.ref('game').update({ state: 'playing' });
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
-    initBoard(); listenPlayers();
-  }
-
-  function listenPlayers() {
-    db.ref('players').on('value', s => {
-      const ps = s.val() || {};
-      const ids = Object.keys(ps);
-      document.querySelectorAll('.pawn').forEach(p => p.remove());
-      db.ref('game').once('value', gs => {
-        const turnIdx = gs.val().turn;
-        document.getElementById('playersStatusList').innerHTML = ids.map((id, idx) => {
-          const p = ps[id]; const isActive = idx === turnIdx;
-          const pawn = document.createElement('div');
-          pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
-          document.body.appendChild(pawn);
-          const cell = document.getElementById(`cell-${p.pos + 1}`);
-          if(cell) {
-            const r = cell.getBoundingClientRect();
-            pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
-          }
-          return `<div class="player-entry ${isActive ? 'active-p' : ''}">
-              <div style="font-size:2rem;">${p.avatar}</div>
-              <div style="flex:1; margin-right:12px;">
-                <div style="font-weight:bold;">${p.name}</div>
-                <div style="font-size:0.8rem; color:var(--blue);">משבצת: ${p.pos + 1}</div>
-              </div>
-              <div style="font-weight:bold; color:var(--gold);">${(p.pos + 1) * 10} נק'</div>
-            </div>`;
-        }).join('');
-        if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור: " + ps[ids[turnIdx]].name;
-      });
-    });
-    db.ref('game').on('value', s => {
-      const g = s.val();
-      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1];
-    });
+    initBoard();
   }
 
   clearDatabase();
   new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
-  db.ref('players').on('value', s => {
-    const p = s.val() || {};
-    document.getElementById('playersLobby').innerHTML = Object.keys(p).map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
-  });
 </script>
 </body>
 </html>
