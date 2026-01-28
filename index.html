@@ -3,96 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <title>לובי המשחק - ארז ברוכי</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
     :root { --blue: #38bdf8; --dark: #020617; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: radial-gradient(circle, #1e293b 0%, #020617 100%); color: white; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-    .screen { display: none; width: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    body { margin: 0; font-family: sans-serif; background: #020617; color: white; text-align: center; }
+    .screen { display: none; padding: 20px; flex-direction: column; align-items: center; }
     .active { display: flex; }
-    h1 { font-size: 3rem; color: var(--blue); text-shadow: 0 0 20px rgba(56,189,248,0.4); margin-bottom: 10px; }
-    #playersList { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1000px; margin-top: 30px; }
-    .player-card { background: white; color: var(--dark); padding: 15px 30px; border-radius: 50px; font-size: 1.8rem; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.4); animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes pop { 0% { transform: scale(0) rotate(-10deg); } 100% { transform: scale(1) rotate(0); } }
-    #qrContainer { background: white; padding: 15px; border-radius: 20px; box-shadow: 0 0 30px rgba(56,189,248,0.3); margin-bottom: 20px; }
-    .btn { background: var(--blue); color: var(--dark); padding: 20px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
-    .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
-    .icon-opt { font-size: 2.5rem; padding: 10px; border: 3px solid transparent; border-radius: 15px; cursor: pointer; }
-    .icon-opt.selected { border-color: var(--blue); background: rgba(56,189,248,0.2); }
+    .btn { background: #38bdf8; color: #000; padding: 20px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.5rem; cursor: pointer; margin-top: 20px; width: 80%; max-width: 300px; }
+    .player-card { background: white; color: black; padding: 15px 30px; border-radius: 50px; font-size: 1.8rem; margin: 10px; display: inline-block; font-weight: bold; }
+    input { padding: 15px; font-size: 1.2rem; width: 80%; max-width: 300px; border-radius: 10px; border: 2px solid #38bdf8; margin-bottom: 10px; text-align: center; }
+    #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 10px; }
   </style>
 </head>
 <body>
 
 <div id="choiceScreen" class="screen active">
   <h1>🏙️ משחק תכנון העיר</h1>
-  <button class="btn" onclick="initView('teacher')">🖥️ פתח לובי (מרצה)</button>
-  <button class="btn" onclick="initView('student')" style="margin-top: 20px; background: #94a3b8;">📱 הצטרפות (סטודנט)</button>
+  <button class="btn" onclick="initRole('teacher')">🖥️ אני המרצה</button>
+  <button class="btn" onclick="initRole('student')" style="background: #94a3b8;">📱 אני סטודנט</button>
 </div>
 
 <div id="teacherView" class="screen">
-  <h1>מחכים לכם בלובי...</h1>
-  <div id="qrContainer"><div id="qrcode"></div></div>
+  <h1>ממתינים בלובי...</h1>
+  <div id="qrcode"></div>
   <h2 id="countLabel">0 שחקנים מחוברים</h2>
   <div id="playersList"></div>
-  <button class="btn" id="startBtn" style="position:fixed; bottom:30px; left:30px; display:none;" onclick="alert('החיבור הצליח!')">התחל משחק 🚀</button>
 </div>
 
 <div id="studentView" class="screen">
   <h2>הצטרפות למשחק</h2>
-  <input type="text" id="pName" placeholder="שם הקבוצה" style="width:100%; max-width:300px; padding:15px; font-size:1.2rem; border-radius:10px; border:2px solid var(--blue); background:#0f172a; color:white; text-align:center;">
-  <div class="icon-grid">
-    <div class="icon-opt" onclick="selIcon(this, '📐')">📐</div><div class="icon-opt" onclick="selIcon(this, '🏛️')">🏛️</div>
-    <div class="icon-opt" onclick="selIcon(this, '🏗️')">🏗️</div><div class="icon-opt" onclick="selIcon(this, '⚖️')">⚖️</div>
-    <div class="icon-opt" onclick="selectIcon(this, '🎨')">🎨</div><div class="icon-opt" onclick="selectIcon(this, '🏡')">🏡</div>
-    <div class="icon-opt" onclick="selectIcon(this, '🏢')">🏢</div><div class="icon-opt" onclick="selectIcon(this, '🌳')">🌳</div>
-  </div>
-  <button class="btn" onclick="sendToLobby()">הצטרפות!</button>
+  <input type="text" id="pName" placeholder="שם הקבוצה">
+  <button class="btn" id="joinBtn" onclick="sendToLobby()">הצטרפות!</button>
+  <p id="msg" style="margin-top: 20px; color: #38bdf8;"></p>
 </div>
 
 <script>
-  const config = {
+  const firebaseConfig = {
     apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
     databaseURL: "https://erez-taba-game-default-rtdb.europe-west1.firebasedatabase.app/",
     projectId: "erez-taba-game"
   };
-  firebase.initializeApp(config);
-  const db = firebase.database();
-  let currentIcon = '📐';
 
-  function initView(role) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  // אתחול
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function initRole(role) {
+    document.getElementById('choiceScreen').style.display = 'none';
     if(role === 'teacher') {
-      document.getElementById('teacherView').classList.add('active');
-      db.ref('lobby_v2').remove();
-      new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0] + "?role=student", width: 160, height: 160 });
-      db.ref('lobby_v2').on('value', s => {
-        const p = s.val() || {};
-        const ids = Object.keys(p);
-        document.getElementById('playersList').innerHTML = ids.map(id => `<div class="player-card">${p[id].icon} ${p[id].name}</div>`).join('');
-        document.getElementById('countLabel').innerText = `${ids.length} שחקנים מחוברים`;
-        document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
-      });
+      document.getElementById('teacherView').style.display = 'flex';
+      setupTeacher();
     } else {
-      document.getElementById('studentView').classList.add('active');
+      document.getElementById('studentView').style.display = 'flex';
     }
   }
 
   // זיהוי אוטומטי מהסריקה
-  if(window.location.search.includes('role=student')) initView('student');
+  if(window.location.search.includes('role=student')) {
+    initRole('student');
+  }
 
-  function selIcon(el, icon) {
-    document.querySelectorAll('.icon-opt').forEach(o => o.classList.remove('selected'));
-    el.classList.add('selected'); currentIcon = icon;
+  function setupTeacher() {
+    db.ref('lobby_v3').remove(); // איפוס לובי
+    new QRCode(document.getElementById("qrcode"), {
+      text: window.location.href.split('?')[0] + "?role=student",
+      width: 150, height: 150
+    });
+
+    db.ref('lobby_v3').on('value', (snapshot) => {
+      const p = snapshot.val() || {};
+      const ids = Object.keys(p);
+      document.getElementById('countLabel').innerText = ids.length + " שחקנים מחוברים";
+      document.getElementById('playersList').innerHTML = ids.map(id => `<div class="player-card">${p[id].name}</div>`).join('');
+    });
   }
 
   function sendToLobby() {
     const name = document.getElementById('pName').value;
-    if(!name) return alert("נא להזין שם");
-    db.ref('lobby_v2').push({ name: name, icon: currentIcon }).then(() => {
-      document.getElementById('studentView').innerHTML = "<h1>מעולה! השם שלכם מופיע על המסך :)</h1>";
-    });
+    if(!name) { alert("נא להזין שם"); return; }
+    
+    // חיווי מיידי שהלחיצה עובדת
+    document.getElementById('joinBtn').innerText = "שולח...";
+    document.getElementById('joinBtn').disabled = true;
+
+    db.ref('lobby_v3').push({ name: name })
+      .then(() => {
+        document.getElementById('msg').innerText = "מעולה! השם מופיע במחשב המרצה.";
+        document.getElementById('joinBtn').style.display = 'none';
+      })
+      .catch((error) => {
+        alert("שגיאה בחיבור: " + error.message);
+        document.getElementById('joinBtn').disabled = false;
+        document.getElementById('joinBtn').innerText = "נסה שוב";
+      });
   }
 </script>
 </body>
