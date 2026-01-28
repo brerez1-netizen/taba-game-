@@ -9,12 +9,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { margin: 0; font-family: sans-serif; background: #020617; color: white; text-align: center; }
-    .screen { display: none; padding: 20px; flex-direction: column; align-items: center; }
-    .active { display: flex; }
-    .btn { background: #38bdf8; color: #000; padding: 20px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.5rem; cursor: pointer; margin-top: 20px; width: 80%; max-width: 300px; }
-    .player-card { background: white; color: black; padding: 15px 30px; border-radius: 50px; font-size: 1.8rem; margin: 10px; display: inline-block; font-weight: bold; box-shadow: 0 5px 15px rgba(56,189,248,0.4); animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .screen { display: none; padding: 20px; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    .screen.active { display: flex; }
+    .btn { background: #38bdf8; color: #000; padding: 20px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.5rem; cursor: pointer; margin-top: 20px; width: 85%; max-width: 300px; }
+    .player-card { background: white; color: black; padding: 15px 30px; border-radius: 50px; font-size: 1.8rem; margin: 10px; display: inline-block; font-weight: bold; box-shadow: 0 5px 15px rgba(56,189,248,0.4); animation: pop 0.4s ease; }
     @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-    input { padding: 15px; font-size: 1.2rem; width: 80%; max-width: 300px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; color: white; text-align: center; }
+    input { padding: 15px; font-size: 1.2rem; width: 85%; max-width: 300px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; color: white; text-align: center; }
     #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 15px; }
   </style>
 </head>
@@ -31,14 +31,14 @@
   <div id="qrcode"></div>
   <h2 id="countLabel">0 שחקנים מחוברים</h2>
   <div id="playersList"></div>
-  <button class="btn" id="startBtn" style="display:none; position:fixed; bottom:30px; left:30px;" onclick="alert('החיבור עובד! בשיעור הבא נפעיל כאן את המשחק')">הפעל משחק 🚀</button>
+  <button class="btn" id="startBtn" style="display:none;" onclick="alert('החיבור הצליח!')">הפעל משחק</button>
 </div>
 
 <div id="studentView" class="screen">
   <h2>איך קוראים לכם?</h2>
   <input type="text" id="pName" placeholder="שם הקבוצה">
   <button class="btn" id="joinBtn" onclick="sendToLobby()">הצטרפות ללובי!</button>
-  <h2 id="successMsg" style="display:none; color: #38bdf8; margin-top: 30px;">נרשמתם בהצלחה! השם שלכם על המסך.</h2>
+  <h2 id="successMsg" style="display:none; color: #38bdf8; margin-top: 30px;">נרשמתם בהצלחה! השם על המסך.</h2>
 </div>
 
 <script>
@@ -53,35 +53,30 @@
   const db = firebase.database();
 
   function initRole(role) {
-    document.getElementById('choiceScreen').style.display = 'none';
+    document.getElementById('choiceScreen').classList.remove('active');
     if(role === 'teacher') {
-      document.getElementById('teacherView').style.display = 'flex';
+      document.getElementById('teacherView').classList.add('active');
       setupTeacher();
     } else {
-      document.getElementById('studentView').style.display = 'flex';
+      document.getElementById('studentView').classList.add('active');
     }
   }
 
-  // זיהוי אוטומטי מהסריקה
   if(window.location.search.includes('role=student')) initRole('student');
 
   function setupTeacher() {
-    // איפוס נתונים בשרת כדי להתחיל נקי
     db.ref('lobby_live').remove();
-    
-    // יצירת QR עם קישור אוטומטי למצב סטודנט
     new QRCode(document.getElementById("qrcode"), {
       text: window.location.href.split('?')[0] + "?role=student",
       width: 160, height: 160
     });
 
-    // האזנה בזמן אמת - מה שקורה ב-Database קופץ מיד למסך
     db.ref('lobby_live').on('value', (snapshot) => {
       const data = snapshot.val() || {};
       const ids = Object.keys(data);
       document.getElementById('countLabel').innerText = `${ids.length} שחקנים מחוברים`;
       document.getElementById('playersList').innerHTML = ids.map(id => `<div class="player-card">${data[id].name}</div>`).join('');
-      document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
+      if(ids.length > 0) document.getElementById('startBtn').style.display = 'block';
     });
   }
 
@@ -93,14 +88,17 @@
     document.getElementById('joinBtn').innerText = "שולח...";
     document.getElementById('joinBtn').disabled = true;
 
-    // כתיבת השם ל-Database
     db.ref('lobby_live').push({ name: name })
       .then(() => {
         document.getElementById('joinBtn').style.display = 'none';
         nameInput.style.display = 'none';
         document.getElementById('successMsg').style.display = 'block';
       })
-      .catch(e => alert("שגיאה: " + e.message));
+      .catch(e => {
+        alert("שגיאה: " + e.message);
+        document.getElementById('joinBtn').disabled = false;
+        document.getElementById('joinBtn').innerText = "נסה שוב";
+      });
   }
 </script>
 </body>
