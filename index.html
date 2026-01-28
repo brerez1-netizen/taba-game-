@@ -43,16 +43,21 @@
 </div>
 
 <script>
+  // קונפיגורציה מעודכנת לפי הצילומים שלך
   const firebaseConfig = {
     apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
-    databaseURL: "https://erez-taba-game-default-rtdb.europe-west1.firebasedatabase.app/",
-    projectId: "erez-taba-game"
+    authDomain: "erez-taba-game.firebaseapp.com",
+    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/",
+    projectId: "erez-taba-game",
+    storageBucket: "erez-taba-game.firebasestorage.app",
+    messagingSenderId: "1078062137493",
+    appId: "1:1078062137493:web:05204553b3de00d51adb9c",
+    measurementId: "G-BPRC2VJMLW"
   };
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // חיווי חיבור בזמן אמת
   db.ref('.info/connected').on('value', (snap) => {
     const dot = document.getElementById('status-dot');
     const text = document.getElementById('conn-text');
@@ -100,17 +105,7 @@
     btn.innerText = "שולח...";
     btn.disabled = true;
 
-    // ניסיון כתיבה עם Timeout למקרה שהשרת לא מגיב
-    const timeout = setTimeout(() => {
-        if(btn.disabled) {
-            alert("השרת לא מגיב. ודא שהגדרת Rules ב-Firebase כפי שצילמת.");
-            btn.disabled = false;
-            btn.innerText = "נסה שוב";
-        }
-    }, 5000);
-
     db.ref('lobby_vFinal').push({ name: name }, (error) => {
-      clearTimeout(timeout);
       if (error) {
         alert("שגיאה: " + error.message);
         btn.disabled = false;
