@@ -4,40 +4,29 @@
   <meta charset="UTF-8">
   <title>🏙️ משחק תכנון העיר - המהדורה המלאה</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  
   <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
   <style>
-    :root { --stage1: #38bdf8; --stage2: #6366f1; --stage3: #22c55e; --stage4: #f97316; --stage5: #facc15; --bg-dark: #020617; }
+    :root { --stage1: #38bdf8; --stage5: #facc15; --bg-dark: #020617; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: var(--bg-dark); color: #e5f4ff; text-align: center; overflow-x: hidden; }
+    body { font-family: system-ui, sans-serif; background: var(--bg-dark); color: #e5f4ff; text-align: center; }
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
     .screen.active { display: flex; }
-    
     .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-width: 950px; margin: 0 auto; }
     .cell { aspect-ratio: 1; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; background-blend-mode: multiply; background-color: rgba(15, 23, 42, 0.8); position: relative; }
     .cell-num { position: absolute; top: 4px; right: 6px; font-size: 0.8rem; opacity: 0.7; }
-    
-    .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid #000; font-size: 1.3rem; box-shadow: 0 0 10px #000; }
-    
-    #lobbyList { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 30px; }
+    .pawn { width: 32px; height: 32px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid #000; font-size: 1.3rem; box-shadow: 0 0 10px #000; }
+    .primary-btn { background: var(--stage1); color: #020617; padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 1.2rem; }
     .lobby-tag { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; margin: 10px; font-size: 1.4rem; display: inline-block; animation: pop 0.3s ease; }
     @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
-    
-    #qrBox { background: white; padding: 15px; border-radius: 15px; text-align: center; color: black; margin-bottom: 20px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-    .primary-btn { background: var(--stage1); color: #020617; padding: 15px 40px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; font-size: 1.3rem; transition: 0.2s; }
-    
     .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
-    .icon-opt { font-size: 2.5rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; }
-    .icon-opt.selected { border-color: var(--stage1); background: rgba(56, 189, 248, 0.2); }
-    
-    .dice-btn { width: 110px; height: 110px; border-radius: 30px; border: none; background: #38bdf8; font-size: 3.5rem; color: white; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-    .dice-btn:disabled { background: #444; opacity: 0.5; }
-    
+    .icon-opt { font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; }
+    .icon-opt.selected { border-color: var(--stage1); background: rgba(255,255,255,0.1); }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .modal-content { background: #1e293b; width: 100%; max-width: 450px; border-radius: 25px; padding: 25px; border: 3px solid var(--stage1); }
+    .dice-btn { width: 110px; height: 110px; border-radius: 30px; border: none; background: #38bdf8; font-size: 3.5rem; color: white; cursor: pointer; }
+    .dice-btn:disabled { background: #444; opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -49,7 +38,7 @@
 </div>
 
 <div id="lobbyScreen" class="screen">
-  <div id="qrBox"><div id="qrcode"></div><p style="font-weight: bold; margin-top: 5px;">סרקו להצטרפות</p></div>
+  <div id="qrBox" style="background:white; padding:10px; border-radius:15px; margin-bottom:20px;"><div id="qrcode"></div></div>
   <h2 id="lCount">מחכים לשחקנים...</h2>
   <div id="lobbyList"></div>
   <button id="startBtn" class="primary-btn" style="display:none; margin-top:30px;" onclick="startGame()">🚀 הפעל משחק</button>
@@ -57,21 +46,20 @@
 
 <div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 20px;">
   <div class="board-grid" id="boardGrid"></div>
-  <div style="position:fixed; bottom:20px; right:20px; background:rgba(0,0,0,0.85); padding:15px; border-radius:15px; border:2px solid var(--stage1); min-width:220px;">
+  <div style="position:fixed; bottom:20px; right:20px; background:rgba(0,0,0,0.85); padding:15px; border-radius:15px; border: 2px solid var(--stage1); min-width:220px;">
     <div style="font-size: 0.9rem; opacity: 0.7;">תור של:</div>
     <div id="activeName" style="font-size: 1.4rem; font-weight: bold;">ממתין...</div>
   </div>
 </div>
 
 <div id="remoteScreen" class="screen">
-  <h2 id="statusText">ממתין לתחילת המשחק...</h2>
+  <h2 id="statusText">ממתין לתורכם...</h2>
   <div style="margin:40px 0;"><button id="diceBtn" class="dice-btn" onclick="roll()" disabled>🎲</button></div>
 </div>
 
 <div id="mainModal" class="modal"><div class="modal-content" id="modalContent"></div></div>
 
 <script>
-  // חיבור ל-Database של ארז (europe-west1)
   const config = {
     apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
     databaseURL: "https://erez-taba-game-default-rtdb.europe-west1.firebasedatabase.app/",
@@ -82,25 +70,17 @@
 
   let myId, myRole, selIcon = '📐';
   const boardData = [];
-  const professionalInfo = {
-    1: "יוזמה ראשונית: הכל מתחיל ברעיון לשינוי תכנון - היוזמה יכולה להגיע מרשות או מיזם פרטי.",
-    15: "בדיקה מקדמית: הוועדה בוחנת את שלמות חומר התכנית והתאמתה למדיניות העירונית.",
-    22: "דיון בהפקדה: הצגת התכנית ועמדת מהנדס העיר. זהו הרגע שבו התכנית נחשפת לראשונה.",
-    30: "דיון בהתנגדויות: שמיעת המתנגדים ובחינת חוות דעת מקצועיות להכרעה.",
-    42: "החלטת שר הפנים: בחינת השלכות רוחב ושיקולי על לאישור סופי.",
-    50: "🎉 מתן תוקף: התכנית אושרה סופית ופורסמה ברשומות. ניתן להוציא היתרי בנייה!"
-  };
-
-  for(let i=1; i<=50; i++) {
-    boardData.push({ num: i, stage: Math.ceil(i/10), text: professionalInfo[i] || `שלב ${i} בתהליך הסטטוטורי של התב"ע.` });
-  }
+  for(let i=1; i<=50; i++) boardData.push({ num: i, stage: Math.ceil(i/10), text: `שלב ${i} בתהליך הסטטוטורי.` });
 
   function initRole(r) {
     myRole = r;
     if(r === 'teacher') {
-      db.ref('/').set({ game: { state: 'lobby', turn: 0, modal: false }, players: {} });
+      // עדכון מצב משחק בלי למחוק הכל
+      db.ref('game').update({ state: 'lobby', turn: 0, modal: false });
+      db.ref('players').remove(); 
       showScreen('lobbyScreen');
-      new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0] + "?role=student", width: 140, height: 140 });
+      new QRCode(document.getElementById("qrcode"), { text: window.location.origin + window.location.pathname + "?role=student", width: 140, height: 140 });
+      
       db.ref('players').on('value', s => {
         const p = s.val() || {};
         const ids = Object.keys(p);
@@ -108,19 +88,34 @@
         document.getElementById('lCount').innerText = `${ids.length} שחקנים מחוברים`;
         document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
       });
-    } else showScreen('setupScreen');
+    } else {
+      showScreen('setupScreen');
+    }
   }
 
-  if(window.location.search.includes('role=student')) { setTimeout(() => showScreen('setupScreen'), 200); }
+  // זיהוי אוטומטי של סטודנט
+  if(window.location.search.includes('role=student')) { 
+    window.history.replaceState({}, '', window.location.pathname); // ניקוי הכתובת
+    setTimeout(() => showScreen('setupScreen'), 300); 
+  }
 
-  function selectIcon(el, i) { document.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('selected')); el.classList.add('selected'); selIcon = i; }
+  function selectIcon(el, i) { 
+    document.querySelectorAll('.icon-opt').forEach(x => x.classList.remove('selected')); 
+    el.classList.add('selected'); selIcon = i; 
+  }
 
   function joinGame() {
     const name = document.getElementById('playerName').value || "קבוצה";
     const pRef = db.ref('players').push();
     myId = pRef.key;
-    pRef.set({ name, icon: selIcon, pos: 0, id: myId });
-    showScreen('remoteScreen');
+    pRef.set({ name, icon: selIcon, pos: 0, id: myId }).then(() => {
+      showScreen('remoteScreen');
+      document.getElementById('statusText').innerText = "נרשמת בהצלחה! המתן למרצה...";
+      listenToGame();
+    });
+  }
+
+  function listenToGame() {
     db.ref('game').on('value', s => {
       const g = s.val();
       if(g.state === 'playing') {
@@ -137,7 +132,12 @@
     });
   }
 
-  function startGame() { db.ref('game').update({ state: 'playing' }); showScreen('gameScreen'); renderBoard(); listenPlayers(); }
+  function startGame() { 
+    db.ref('game').update({ state: 'playing' }); 
+    showScreen('gameScreen'); 
+    renderBoard(); 
+    listenToPlayersTeacher(); 
+  }
 
   function renderBoard() {
     const grid = document.getElementById('boardGrid'); grid.innerHTML = '';
@@ -152,7 +152,7 @@
     });
   }
 
-  function listenPlayers() {
+  function listenToPlayersTeacher() {
     db.ref('players').on('value', s => {
       const ps = s.val() || {};
       document.querySelectorAll('.pawn').forEach(p => p.remove());
@@ -183,20 +183,19 @@
   function roll() {
     const steps = Math.floor(Math.random() * 6) + 1;
     document.getElementById('diceBtn').innerText = steps;
-    db.ref(`players/${myId}`).once('value', s => {
-      const newPos = Math.min(49, s.val().pos + steps);
-      db.ref(`players/${myId}`).update({ pos: newPos });
-      setTimeout(() => {
-        db.ref('game').update({ modal: true, activeCell: newPos + 1 });
-        document.getElementById('diceBtn').innerText = "🎲";
-      }, 1500);
-    });
+    db.ref(`players/${myId}`).update({ pos: Math.min(49, playersCache[myId].pos + steps) });
+    setTimeout(() => {
+      db.ref('game').update({ modal: true, activeCell: playersCache[myId].pos + 1 });
+      document.getElementById('diceBtn').innerText = "🎲";
+    }, 1500);
   }
 
+  let playersCache = {};
+  db.ref('players').on('value', s => { playersCache = s.val() || {}; });
+
   function showModal(n) {
-    const d = boardData[n-1];
-    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0; font-size:1.1rem; line-height:1.4;">${d.text}</p>` + 
-      (myRole === 'student' ? `<button class="primary-btn" onclick="nextTurn()">המשך לתור הבא</button>` : `<p style="color:var(--stage1)">השחקן קורא את המידע...</p>`);
+    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0;">מידע על שלב התב"ע...</p>` + 
+      (myRole === 'student' ? `<button class="primary-btn" onclick="nextTurn()">המשך</button>` : `<p>השחקן קורא את המידע...</p>`);
     document.getElementById('mainModal').style.display = 'flex';
   }
 
@@ -215,7 +214,7 @@
 
 <div id="setupScreen" class="screen">
   <h2>הצטרפות למשחק</h2>
-  <input type="text" id="playerName" placeholder="שם הקבוצה / סטודנט" style="width:280px; padding:15px; margin:20px 0; border-radius:10px; border:1px solid var(--stage1); background:#0f172a; color:white; font-size:1rem;">
+  <input type="text" id="playerName" placeholder="שם הקבוצה" style="width:250px; padding:15px; margin:20px 0; border-radius:10px; border:1px solid var(--stage1); background:#0f172a; color:white;">
   <div class="icon-grid">
     <div class="icon-opt" onclick="selectIcon(this, '📐')">📐</div>
     <div class="icon-opt" onclick="selectIcon(this, '🏛️')">🏛️</div>
