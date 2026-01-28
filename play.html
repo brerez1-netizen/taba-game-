@@ -7,31 +7,60 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; padding: 20px; }
-    .screen { display: none; flex-direction: column; align-items: center; }
-    .active { display: flex; }
-    .btn { background: #38bdf8; color: #000; padding: 20px; border-radius: 15px; border: none; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1.2rem; }
-    .dice-btn { width: 120px; height: 120px; font-size: 4rem; border-radius: 30px; border: none; background: #38bdf8; color: white; margin: 40px 0; }
-    .dice-btn:disabled { background: #444; opacity: 0.5; }
-    input, select { padding: 15px; width: 100%; border-radius: 10px; margin-bottom: 10px; border: 2px solid #38bdf8; background: #0f172a; color: white; }
+    :root { --blue: #38bdf8; --dark: #020617; --gold: #facc15; }
+    body { font-family: system-ui, sans-serif; background: var(--dark); color: white; text-align: center; margin: 0; padding: 15px; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid var(--blue); border-radius: 20px; padding: 20px; margin-bottom: 20px; }
+    .avatar-preview { font-size: 5rem; width: 120px; height: 120px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; border: 4px solid var(--blue); }
+    .control-group { margin-bottom: 15px; text-align: right; }
+    .control-group label { display: block; margin-bottom: 5px; opacity: 0.8; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #1e293b; color: white; font-size: 1rem; }
+    .btn { background: var(--blue); color: var(--dark); padding: 18px; border-radius: 15px; border: none; font-weight: bold; width: 100%; font-size: 1.2rem; cursor: pointer; }
+    .dice-btn { width: 130px; height: 130px; font-size: 4rem; border-radius: 35px; border: none; background: linear-gradient(135deg, var(--blue), #6366f1); color: white; margin: 20px 0; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    .dice-btn:disabled { opacity: 0.3; filter: grayscale(1); }
   </style>
 </head>
 <body>
 
 <div id="setup" class="screen active">
-  <h2>עיצוב דמות</h2>
-  <input type="text" id="pName" placeholder="שם הקבוצה">
-  <select id="role"><option value="👷‍♂️">אדריכל</option><option value="⚖️">עו"ד</option><option value="🏗️">יזם</option></select>
-  <select id="color"><option value="#38bdf8">כחול</option><option value="#f472b6">ורוד</option><option value="#4ade80">ירוק</option></select>
-  <button class="btn" onclick="join()">הצטרפות ללובי</button>
+  <h2 style="color:var(--blue)">עיצוב קבוצה</h2>
+  <div class="card">
+    <div class="avatar-preview" id="preview">👷‍♂️</div>
+    <div class="control-group">
+      <label>שם הקבוצה:</label>
+      <input type="text" id="pName" placeholder="הכניסו שם...">
+    </div>
+    <div class="control-group">
+      <label>דמות:</label>
+      <select id="role" onchange="updatePreview()">
+        <option value="👷‍♂️">אדריכל/ית</option>
+        <option value="🏗️">יזם/ית</option>
+        <option value="⚖️">עורך/ת דין</option>
+        <option value="🏛️">נציג/ת ועדה</option>
+        <option value="🎨">מעצב/ת פנים</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>צבע קבוצה:</label>
+      <select id="color" onchange="updatePreview()">
+        <option value="#38bdf8">תכלת</option>
+        <option value="#facc15">זהב</option>
+        <option value="#4ade80">ירוק</option>
+        <option value="#f472b6">ורוד</option>
+      </select>
+    </div>
+    <button class="btn" onclick="join()">הצטרפות ללובי</button>
+  </div>
 </div>
 
-<div id="play" class="screen">
-  <h2 id="status">המתינו למרצה...</h2>
+<div id="play" style="display:none;">
+  <h2 id="status" style="margin-bottom:10px;">המתינו למרצה...</h2>
+  <div class="avatar-preview" id="myAvatarDisplay" style="width:80px; height:80px; font-size:3rem;"></div>
   <button id="diceBtn" class="dice-btn" onclick="roll()" disabled>🎲</button>
-  <div id="modal" style="display:none; background:#1e293b; padding:20px; border-radius:15px; border:2px solid #38bdf8;">
-    <h3 id="mTitle"></h3>
-    <button class="btn" onclick="next()">המשך</button>
+  
+  <div id="infoModal" style="display:none; background: #1e293b; padding: 20px; border-radius: 15px; border: 2px solid var(--gold);">
+    <h3 id="mTitle" style="color:var(--gold); margin-top:0;"></h3>
+    <p id="mDesc" style="line-height:1.4;"></p>
+    <button class="btn" onclick="next()" style="background:var(--gold)">המשך לתור הבא</button>
   </div>
 </div>
 
@@ -43,27 +72,40 @@
   };
   firebase.initializeApp(config);
   const db = firebase.database();
-  let myId, myTurn = false;
+  let myId, myData;
+
+  function updatePreview() {
+    const p = document.getElementById('preview');
+    p.innerText = document.getElementById('role').value;
+    p.style.backgroundColor = document.getElementById('color').value;
+  }
 
   function join() {
     const name = document.getElementById('pName').value;
-    if(!name) return alert("הכנס שם");
+    if(!name) return alert("נא להזין שם קבוצה");
     const pRef = db.ref('players').push();
     myId = pRef.key;
-    pRef.set({ name, avatar: document.getElementById('role').value, color: document.getElementById('color').value, pos: 0, id: myId });
-    document.getElementById('setup').classList.remove('active');
-    document.getElementById('play').classList.add('active');
+    myData = { name, avatar: document.getElementById('role').value, color: document.getElementById('color').value, pos: 0, id: myId };
+    pRef.set(myData);
     
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('play').style.display = 'block';
+    document.getElementById('myAvatarDisplay').innerText = myData.avatar;
+    document.getElementById('myAvatarDisplay').style.backgroundColor = myData.color;
+
     db.ref('game').on('value', s => {
       const g = s.val();
       db.ref('players').once('value', psSnap => {
         const ps = psSnap.val() || {};
         const ids = Object.keys(ps);
-        myTurn = ids[g.turn] === myId;
-        document.getElementById('diceBtn').disabled = !myTurn || g.modal || g.state !== 'playing';
-        document.getElementById('status').innerText = myTurn ? "תורכם! הטילו קובייה" : `תור של: ${ps[ids[g.turn]]?.name || 'ממתין'}`;
-        document.getElementById('modal').style.display = (g.modal && myTurn) ? 'block' : 'none';
-        if(g.modal) document.getElementById('mTitle').innerText = "משבצת " + g.activeCell;
+        const isMyTurn = ids[g.turn] === myId;
+        document.getElementById('diceBtn').disabled = !isMyTurn || g.modal || g.state !== 'playing';
+        document.getElementById('status').innerText = isMyTurn ? "תורכם! הטילו קובייה" : `תור של: ${ps[ids[g.turn]]?.name || 'ממתין'}`;
+        document.getElementById('infoModal').style.display = (g.modal && isMyTurn) ? 'block' : 'none';
+        if(g.modal) {
+            document.getElementById('mTitle').innerText = "משבצת " + g.activeCell;
+            // כאן אפשר להוסיף תיאור שלב תב"ע
+        }
       });
     });
   }
@@ -74,7 +116,7 @@
     db.ref(`players/${myId}`).once('value', s => {
       const newPos = Math.min(49, s.val().pos + steps);
       db.ref(`players/${myId}`).update({ pos: newPos });
-      setTimeout(() => db.ref('game').update({ modal: true, activeCell: newPos + 1 }), 1200);
+      setTimeout(() => db.ref('game').update({ modal: true, activeCell: newPos + 1 }), 1500);
     });
   }
 
