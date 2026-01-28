@@ -104,4 +104,75 @@
         // טעינה חסינה עם טיפול בשגיאות
         const img = new Image();
         img.src = imgPath;
-        img.onload = () => { cell.style.backgroundImage = `url('${
+        img.onload = () => { cell.style.backgroundImage = `url('${imgPath}')`; };
+        img.onerror = () => { cell.style.backgroundColor = '#1e293b'; };
+        
+        cell.innerHTML = `<div class="cell-num">${globalNum}</div>`;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
+
+  function startGame() {
+    db.ref('game').update({ state: 'playing' });
+    document.getElementById('lobbyOverlay').style.display = 'none';
+    document.getElementById('gameScreen').style.visibility = 'visible';
+    initBoard();
+    listenPlayers();
+  }
+
+  function listenPlayers() {
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      const ids = Object.keys(ps);
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      
+      db.ref('game').once('value', gs => {
+        const turnIdx = gs.val().turn;
+        document.getElementById('playersStatusList').innerHTML = ids.map((id, idx) => {
+          const p = ps[id];
+          const isActive = idx === turnIdx;
+          const pawn = document.createElement('div');
+          pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+          document.body.appendChild(pawn);
+          const cell = document.getElementById(`cell-${p.pos + 1}`);
+          if(cell) {
+            const r = cell.getBoundingClientRect();
+            pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+          }
+          return `
+            <div class="player-entry ${isActive ? 'active-p' : ''}">
+              <div style="font-size:2rem;">${p.avatar}</div>
+              <div style="flex:1; margin-right:12px;">
+                <div style="font-weight:bold;">${p.name}</div>
+                <div style="font-size:0.8rem; color:var(--blue);">משבצת: ${p.pos + 1}</div>
+              </div>
+              <div style="font-weight:bold; color:var(--gold);">${(p.pos + 1) * 10} נק'</div>
+            </div>`;
+        }).join('');
+        if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור: " + ps[ids[turnIdx]].name;
+      });
+    });
+
+    db.ref('game').on('value', s => {
+      const g = s.val();
+      if(g.lastRoll > 0) {
+        document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1] || g.lastRoll;
+      }
+    });
+  }
+
+  // איפוס אוטומטי בכניסה לדף
+  db.ref('/').set({ game: { state: 'lobby', turn: 0, lastRoll: 0 }, players: {} });
+  
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
+  
+  db.ref('players').on('value', s => {
+    const p = s.val() || {};
+    document.getElementById('playersLobby').innerHTML = Object.keys(p).map(id => `<div style="background:${p[id].color}; color:black; padding:8px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
+  });
+
+</script>
+</body>
+</html>
