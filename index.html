@@ -8,37 +8,82 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body { margin: 0; font-family: sans-serif; background: #020617; color: white; text-align: center; }
-    .screen { display: none; padding: 20px; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    .screen.active { display: flex; }
-    .btn { background: #38bdf8; color: #000; padding: 20px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.5rem; cursor: pointer; margin-top: 20px; width: 85%; max-width: 300px; }
-    .player-card { background: white; color: black; padding: 15px 30px; border-radius: 50px; font-size: 1.8rem; margin: 10px; display: inline-block; font-weight: bold; box-shadow: 0 5px 15px rgba(56,189,248,0.4); animation: pop 0.4s ease; }
+    :root { --blue: #38bdf8; --pink: #f472b6; --dark: #020617; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: radial-gradient(circle, #1e293b 0%, #020617 100%); color: white; min-height: 100vh; overflow-x: hidden; }
+    .screen { display: none; padding: 20px; flex-direction: column; align-items: center; text-align: center; }
+    .active { display: flex; }
+    
+    /* עיצוב המרצה */
+    h1 { font-size: 3rem; color: var(--blue); text-shadow: 0 0 20px rgba(56,189,248,0.4); }
+    #playersList { display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; margin-top: 40px; }
+    .player-card { background: white; color: var(--dark); padding: 15px; border-radius: 20px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .avatar-view { font-size: 3rem; margin-bottom: 5px; }
+    .player-name { font-weight: bold; font-size: 1.2rem; }
+    
+    /* עיצוב הסטודנט */
+    .customizer { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 20px; width: 100%; max-width: 350px; border: 1px solid var(--blue); }
+    .preview-box { font-size: 5rem; background: white; border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; border: 4px solid var(--blue); }
+    .option-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; text-align: right; }
+    .option-row select { padding: 10px; border-radius: 10px; background: #0f172a; color: white; border: 1px solid var(--blue); }
+    
+    .btn { background: var(--blue); color: var(--dark); padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.2s; width: 100%; }
+    #qrContainer { background: white; padding: 15px; border-radius: 20px; margin-bottom: 20px; display: inline-block; }
     @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
-    input { padding: 15px; font-size: 1.2rem; width: 85%; max-width: 300px; border-radius: 10px; border: 2px solid #38bdf8; background: #0f172a; color: white; text-align: center; }
-    #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 15px; }
   </style>
 </head>
 <body>
 
 <div id="choiceScreen" class="screen active">
-  <h1 style="font-size: 2.5rem; color: #38bdf8;">🏙️ משחק תכנון העיר</h1>
-  <button class="btn" onclick="initRole('teacher')">🖥️ פתח לובי (מרצה)</button>
-  <button class="btn" onclick="initRole('student')" style="background: #94a3b8;">📱 הצטרפות (סטודנט)</button>
+  <h1>🏙️ משחק תכנון העיר</h1>
+  <button class="btn" onclick="initView('teacher')">🖥️ פתח לובי (מרצה)</button>
+  <button class="btn" onclick="initView('student')" style="background: #94a3b8; margin-top: 20px;">📱 הצטרפות (סטודנט)</button>
 </div>
 
 <div id="teacherView" class="screen">
-  <h1>ממתינים בלובי...</h1>
-  <div id="qrcode"></div>
+  <h1>ממתינים לכולם...</h1>
+  <div id="qrContainer"><div id="qrcode"></div></div>
   <h2 id="countLabel">0 שחקנים מחוברים</h2>
   <div id="playersList"></div>
-  <button class="btn" id="startBtn" style="display:none;" onclick="alert('החיבור הצליח!')">הפעל משחק</button>
+  <button class="btn" id="startBtn" style="position:fixed; bottom:30px; left:30px; display:none; width:auto;" onclick="alert('יוצאים לדרך!')">התחל משחק 🚀</button>
 </div>
 
 <div id="studentView" class="screen">
-  <h2>איך קוראים לכם?</h2>
-  <input type="text" id="pName" placeholder="שם הקבוצה">
-  <button class="btn" id="joinBtn" onclick="sendToLobby()">הצטרפות ללובי!</button>
-  <h2 id="successMsg" style="display:none; color: #38bdf8; margin-top: 30px;">נרשמתם בהצלחה! השם על המסך.</h2>
+  <h2>צרו את הדמות שלכם</h2>
+  <div class="customizer">
+    <div class="preview-box" id="preview">👷‍♂️</div>
+    
+    <div class="option-row">
+      <label>שם הקבוצה:</label>
+      <input type="text" id="pName" placeholder="הכניסו שם..." style="padding:12px; border-radius:10px; border:none; text-align:center;">
+    </div>
+
+    <div class="option-row">
+      <label>בחרו תפקיד:</label>
+      <select id="roleSel" onchange="updatePreview()">
+        <option value="👷‍♂️">אדריכל/ית</option>
+        <option value="👩‍💼">עורכת דין</option>
+        <option value="🏗️">יזם/ית</option>
+        <option value="🏛️">נציג/ת ועדה</option>
+        <option value="🏡">מתכנן/ת ערים</option>
+        <option value="⚖️">יועמ"ש</option>
+        <option value="📐">מודד/ת</option>
+        <option value="🌳">אדריכל/ית נוף</option>
+      </select>
+    </div>
+
+    <div class="option-row">
+      <label>צבע רקע דמות:</label>
+      <select id="colorSel" onchange="updatePreview()">
+        <option value="white">לבן</option>
+        <option value="#38bdf8">תכלת</option>
+        <option value="#f472b6">ורוד</option>
+        <option value="#facc15">צהוב</option>
+        <option value="#4ade80">ירוק</option>
+      </select>
+    </div>
+
+    <button class="btn" id="joinBtn" onclick="sendToLobby()">אני מוכן/ה! הצטרפות</button>
+  </div>
 </div>
 
 <script>
@@ -52,7 +97,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  function initRole(role) {
+  function initView(role) {
     document.getElementById('choiceScreen').classList.remove('active');
     if(role === 'teacher') {
       document.getElementById('teacherView').classList.add('active');
@@ -62,42 +107,56 @@
     }
   }
 
-  if(window.location.search.includes('role=student')) initRole('student');
+  if(window.location.search.includes('role=student')) initView('student');
+
+  function updatePreview() {
+    const preview = document.getElementById('preview');
+    preview.innerText = document.getElementById('roleSel').value;
+    preview.style.backgroundColor = document.getElementById('colorSel').value;
+  }
 
   function setupTeacher() {
-    db.ref('lobby_live').remove();
+    db.ref('lobby_vFinal').remove();
     new QRCode(document.getElementById("qrcode"), {
       text: window.location.href.split('?')[0] + "?role=student",
-      width: 160, height: 160
+      width: 150, height: 150
     });
 
-    db.ref('lobby_live').on('value', (snapshot) => {
+    db.ref('lobby_vFinal').on('value', (snapshot) => {
       const data = snapshot.val() || {};
       const ids = Object.keys(data);
       document.getElementById('countLabel').innerText = `${ids.length} שחקנים מחוברים`;
-      document.getElementById('playersList').innerHTML = ids.map(id => `<div class="player-card">${data[id].name}</div>`).join('');
-      if(ids.length > 0) document.getElementById('startBtn').style.display = 'block';
+      document.getElementById('playersList').innerHTML = ids.map(id => `
+        <div class="player-card">
+          <div class="avatar-view" style="background:${data[id].color}; border-radius:50%; width:80px; height:80px; display:flex; align-items:center; justify-content:center;">${data[id].avatar}</div>
+          <div class="player-name">${data[id].name}</div>
+        </div>
+      `).join('');
+      document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
     });
   }
 
   function sendToLobby() {
-    const nameInput = document.getElementById('pName');
-    const name = nameInput.value;
+    const name = document.getElementById('pName').value;
     if(!name) return alert("נא להזין שם");
     
-    document.getElementById('joinBtn').innerText = "שולח...";
-    document.getElementById('joinBtn').disabled = true;
+    const btn = document.getElementById('joinBtn');
+    btn.innerText = "מתחבר...";
+    btn.disabled = true;
 
-    db.ref('lobby_live').push({ name: name })
+    const playerData = {
+      name: name,
+      avatar: document.getElementById('roleSel').value,
+      color: document.getElementById('colorSel').value
+    };
+
+    db.ref('lobby_vFinal').push(playerData)
       .then(() => {
-        document.getElementById('joinBtn').style.display = 'none';
-        nameInput.style.display = 'none';
-        document.getElementById('successMsg').style.display = 'block';
-      })
-      .catch(e => {
-        alert("שגיאה: " + e.message);
-        document.getElementById('joinBtn').disabled = false;
-        document.getElementById('joinBtn').innerText = "נסה שוב";
+        document.getElementById('studentView').innerHTML = `
+          <div class="preview-box" style="background:${playerData.color}">${playerData.avatar}</div>
+          <h2>מעולה, ${name}!</h2>
+          <p>הדמות שלכם מופיעה על המסך. חכו שהמרצה יתחיל את המשחק.</p>
+        `;
       });
   }
 </script>
