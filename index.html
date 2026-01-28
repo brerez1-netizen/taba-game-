@@ -17,8 +17,8 @@
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.02); z-index: 5; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
     #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
   </style>
 </head>
 <body>
@@ -26,7 +26,7 @@
 <div id="lobbyOverlay">
   <h1 style="color: var(--blue); font-size: 3rem;">🏙️ משחק תכנון העיר</h1>
   <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל בדיקת לוח</button>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 הצג לוח משחק</button>
 </div>
 
 <div id="gameScreen" class="main-layout" style="visibility: hidden;">
@@ -43,16 +43,26 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מיפוי ידני ומדויק של המשבצות לקבצים (לפי ה-GitHub שלך)
-  const fileMap = {
-    // שלב m1 (מציג עד 07)
-    1: "m1-01", 2: "m1-02", 3: "m1-03", 4: "m1-04", 5: "m1-05", 6: "m1-06", 7: "m1-07",
-    // שלב m2 (מתחיל ב-11, מציג עד 08)
-    11: "m2-01", 12: "m2-02", 13: "m2-03", 14: "m2-04", 15: "m2-05", 16: "m2-06", 17: "m2-07", 18: "m2-08",
-    // שלב m3 (מתחיל ב-21, מציג עד 09)
-    21: "m3-01", 22: "m3-02", 23: "m3-03", 24: "m3-04", 25: "m3-05", 26: "m3-06", 27: "m3-07", 28: "m3-08", 29: "m3-09"
-    // ניתן להמשיך להוסיף כאן את שאר המיפויים
-  };
+  // הגדרת תחומי השלבים כפי ששלחת
+  const stages = [
+    { id: 1, start: 1 },
+    { id: 2, start: 8 },
+    { id: 3, start: 16 },
+    { id: 4, start: 26 },
+    { id: 5, start: 38 }
+  ];
+
+  function getFileNameForCell(num) {
+    // מוצא את השלב הנוכחי למשבצת
+    let currentStage = stages[0];
+    for (let s of stages) {
+      if (num >= s.start) currentStage = s;
+    }
+    
+    // חישוב מספר הקובץ בתוך השלב (למשל משבצת 8 היא הראשונה בשלב 2 -> 01)
+    const innerNum = (num - currentStage.start) + 1;
+    return `m${currentStage.id}-${String(innerNum).padStart(2, '0')}`;
+  }
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
@@ -62,19 +72,16 @@
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      
       for(let c=1; c<=10; c++) {
         const globalNum = (r * 10) + c;
         const cell = document.createElement('div');
-        cell.className = 'cell' + ([1, 15, 21, 30, 42, 50].includes(globalNum) ? ' milestone' : '');
+        // הדגשת משבצות פתיחת שלב
+        const isStartOfStage = stages.some(s => s.start === globalNum);
+        cell.className = 'cell' + (isStartOfStage ? ' milestone' : '');
         cell.id = `cell-${globalNum}`;
         
-        // שליפת שם הקובץ מהמפה - אם לא קיים, נסה ניחוש מושכל או השאר ריק
-        const fileName = fileMap[globalNum];
-        if (fileName) {
-          cell.style.backgroundImage = `url('images/${fileName}.jpeg?v=${ts}')`; 
-        }
-        
+        const fileName = getFileNameForCell(globalNum);
+        cell.style.backgroundImage = `url('images/${fileName}.jpeg?v=${ts}')`; 
         cell.innerHTML = `<div class="cell-num">${globalNum}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -86,6 +93,25 @@
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
     initBoard();
+    listenPlayers();
+  }
+
+  function listenPlayers() {
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      Object.keys(ps).forEach(id => {
+        const p = ps[id];
+        const pawn = document.createElement('div');
+        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        document.body.appendChild(pawn);
+        const cell = document.getElementById(`cell-${p.pos + 1}`);
+        if(cell) {
+          const r = cell.getBoundingClientRect();
+          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+        }
+      });
+    });
   }
 
   db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
