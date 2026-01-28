@@ -7,46 +7,121 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root { --blue: #38bdf8; --dark: #020617; --gold: #facc15; }
+    :root { 
+      --blue: #38bdf8; --dark: #020617; --gold: #facc15;
+      --s1: #e2e8f0; --s2: #94a3b8; --s3: #64748b; --s4: #475569; --s5: #1e293b;
+    }
     body { margin: 0; font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; }
+    
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
-    .active { display: flex; }
-    
-    /* לוח המשחק */
-    .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 850px; margin: 0 auto; padding: 10px; }
-    .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: #1e293b; transition: 0.3s; }
-    .cell-num { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; opacity: 0.6; }
-    
-    /* חיילים מעוצבים */
-    .pawn { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); border: 3px solid #000; font-size: 1.6rem; box-shadow: 0 0 15px rgba(0,0,0,0.7); }
-    .active-pawn { animation: pulse 1.5s infinite; border-color: var(--gold); transform: scale(1.2); z-index: 101; }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(250, 204, 21, 0); } 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); } }
+    .screen.active { display: flex; }
 
-    .btn { background: var(--blue); color: var(--dark); padding: 15px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.4rem; cursor: pointer; }
-    #playersLobby { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
-    .lobby-card { padding: 15px 25px; border-radius: 40px; display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-weight: bold; color: black; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+    /* לוח המשחק המשופר */
+    .board-grid { 
+      display: grid; 
+      grid-template-columns: repeat(10, 1fr); /* שיניתי ל-10 עמודות כדי שיראו את כל ה-50 בצורה רחבה */
+      gap: 12px; 
+      width: 95vw; 
+      max-width: 1400px; 
+      margin: 20px auto; 
+    }
+    
+    .cell { 
+      aspect-ratio: 1; 
+      border-radius: 12px; 
+      border: 2px solid rgba(56, 189, 248, 0.3); 
+      background-size: cover; 
+      background-position: center; 
+      position: relative; 
+      background-color: #1e293b; /* צבע ברירת מחדל אם אין תמונה */
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+    }
 
-    /* מודל מידע */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 1000; align-items: center; justify-content: center; }
-    .modal-content { background: #1e293b; width: 500px; padding: 40px; border-radius: 30px; border: 3px solid var(--blue); box-shadow: 0 0 50px rgba(56, 189, 248, 0.3); }
+    /* צבעי שלבים לפי התקדמות (כמו צבעי ייעודי קרקע) */
+    .stage-1 { border-color: #fca5a5; } /* התחלה - אדמדם */
+    .stage-2 { border-color: #fde047; } /* צהוב */
+    .stage-3 { border-color: #86efac; } /* ירוק */
+    .stage-4 { border-color: #93c5fd; } /* כחול */
+    .stage-5 { border-color: #d8b4fe; } /* סגול - סיום */
+
+    .cell-num { 
+      position: absolute; 
+      top: 5px; 
+      right: 8px; 
+      font-size: 1rem; 
+      font-weight: bold;
+      color: var(--blue);
+      text-shadow: 1px 1px 2px black;
+    }
+
+    /* חיילים - הגדלתי אותם */
+    .pawn { 
+      width: 50px; 
+      height: 50px; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      position: absolute; 
+      z-index: 100; 
+      transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+      border: 4px solid #000; 
+      font-size: 2rem; 
+      box-shadow: 0 5px 15px rgba(0,0,0,0.8); 
+    }
+
+    .active-pawn { 
+      animation: pulse 1.5s infinite; 
+      transform: scale(1.3); 
+      z-index: 101; 
+      border-color: white;
+    }
+
+    @keyframes pulse { 
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 
+      70% { box-shadow: 0 0 0 20px rgba(56, 189, 248, 0); } 
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } 
+    }
+
+    /* לוח סטטוס תחתון */
+    .status-bar {
+      position: fixed; 
+      bottom: 0; 
+      width: 100%; 
+      background: linear-gradient(transparent, rgba(0,0,0,0.9)); 
+      padding: 30px; 
+      display: flex; 
+      justify-content: space-around; 
+      align-items: center;
+    }
+
+    .active-info {
+      background: rgba(30, 41, 59, 0.9);
+      padding: 15px 40px;
+      border-radius: 50px;
+      border: 2px solid var(--blue);
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: #1e293b; width: 600px; padding: 50px; border-radius: 30px; border: 4px solid var(--blue); }
   </style>
 </head>
 <body>
 
 <div id="lobbyScreen" class="screen active">
-  <h1 style="font-size: 3.5rem; color: var(--blue); margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
-  <p style="font-size: 1.5rem; opacity: 0.8; margin-bottom: 30px;">קורס תחיקת הבנייה | ארז ברוכי</p>
-  <div style="background:white; padding:20px; border-radius:20px; margin-bottom:30px;"><div id="qrcode"></div></div>
-  <h2 id="lCount">ממתינים לשחקנים...</h2>
-  <div id="playersLobby"></div>
-  <button class="btn" id="startBtn" style="display:none;" onclick="startGame()">🚀 מתחילים את התהליך!</button>
+  <h1 style="font-size: 4rem; color: var(--blue);">🏙️ משחק תכנון העיר</h1>
+  <div style="background:white; padding:15px; border-radius:20px; margin-bottom:20px;"><div id="qrcode"></div></div>
+  <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:20px; justify-content:center; margin-bottom:40px;"></div>
+  <button class="btn" style="padding: 20px 60px; font-size: 2rem; background: var(--gold); color: black; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;" id="startBtn" onclick="startGame()">🚀 התחל משחק</button>
 </div>
 
-<div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 20px;">
+<div id="gameScreen" class="screen">
   <div class="board-grid" id="boardGrid"></div>
-  <div style="position:fixed; bottom:30px; right:30px; background:rgba(0,0,0,0.9); padding:20px; border-radius:20px; border:2px solid var(--blue); min-width:250px;">
-    <div style="font-size:1rem; opacity:0.7;">תור של קבוצת:</div>
-    <div id="activeName" style="font-size:2rem; font-weight:bold; color:var(--blue);">-</div>
+  <div class="status-bar">
+    <div class="active-info">תור של: <span id="activeName" style="color:var(--blue)">-</span></div>
   </div>
 </div>
 
@@ -61,9 +136,10 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // נתוני השלבים מהקוד המקורי
+  // נתוני השלבים המקצועיים שלך
   const tabaData = {
-    1: "יוזמה ותכנון רעיוני", 7: "בדיקת תנאי סף", 14: "דיון במליאת הוועדה המקומית", 21: "אישור הפקדה בתנאים", 30: "מינוי חוקר לשמיעת התנגדויות", 40: "פרסום אישור ברשומות", 50: "🏡 מתן תוקף סופי!"
+    1: "יוזמה ותכנון רעיוני", 15: "החלטה על המלצה להפקדה", 22: "מילוי תנאי הפקדה",
+    30: "מינוי חוקר לשמיעת התנגדויות", 42: "הכנת תכנית לצרכי רישום (תצ'ר)", 50: "🏡 מתן תוקף סופי!"
   };
 
   db.ref('game').set({ state: 'lobby', turn: 0, modal: false });
@@ -71,14 +147,13 @@
   
   new QRCode(document.getElementById("qrcode"), { 
     text: window.location.href.replace('index.html', '') + "play.html", 
-    width: 180, height: 180 
+    width: 200, height: 200 
   });
 
   db.ref('players').on('value', s => {
     const p = s.val() || {};
     const ids = Object.keys(p);
-    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div class="lobby-card" style="background:${p[id].color}">${p[id].avatar} ${p[id].name}</div>`).join('');
-    document.getElementById('lCount').innerText = `${ids.length} קבוצות מחוברות`;
+    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${p[id].color}; color:black; padding:15px 30px; border-radius:50px; font-weight:bold; font-size:1.5rem;">${p[id].avatar} ${p[id].name}</div>`).join('');
     document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
   });
 
@@ -93,12 +168,13 @@
   function initBoard() {
     const grid = document.getElementById('boardGrid'); grid.innerHTML = '';
     for(let i=1; i<=50; i++) {
-      const row = Math.floor((i-1)/5);
-      const idx = (row % 2 === 0) ? i : (row*5) + (5 - ((i-1)%5));
+      const stage = Math.ceil(i/10);
       const cell = document.createElement('div');
-      cell.className = 'cell'; cell.id = `cell-${idx}`;
-      cell.style.backgroundImage = `url('images/m${Math.ceil(idx/10)}-${String(idx).padStart(2,'0')}.jpeg')`;
-      cell.innerHTML = `<div class="cell-num">${idx}</div>`;
+      cell.className = `cell stage-${stage}`; 
+      cell.id = `cell-${i}`;
+      // ניסיון לטעון תמונה, אם לא קיים - יישאר צבע הרקע
+      cell.style.backgroundImage = `url('images/m${stage}-${String(i).padStart(2,'0')}.jpeg')`;
+      cell.innerHTML = `<div class="cell-num">${i}</div>`;
       grid.appendChild(cell);
     }
   }
@@ -119,8 +195,8 @@
           const cell = document.getElementById(`cell-${p.pos + 1}`);
           if(cell) {
             const r = cell.getBoundingClientRect();
-            pawn.style.top = (r.top + window.scrollY + (i*4)) + "px";
-            pawn.style.left = (r.left + (i*4)) + "px";
+            pawn.style.top = (r.top + 10) + "px";
+            pawn.style.left = (r.left + 10) + "px";
           }
         });
       });
@@ -132,10 +208,17 @@
         const ps = psSnap.val() || {};
         const ids = Object.keys(ps);
         if(ids[g.turn]) document.getElementById('activeName').innerText = ps[ids[g.turn]].name;
-        document.getElementById('mainModal').style.display = g.modal ? 'flex' : 'none';
+        
+        const modal = document.getElementById('mainModal');
+        modal.style.display = g.modal ? 'flex' : 'none';
         if(g.modal) {
-          const content = tabaData[g.activeCell] || "שלב נוסף בתהליך הסטטוטורי של התב\"ע...";
-          document.getElementById('modalContent').innerHTML = `<h1 style="color:var(--blue)">משבצת ${g.activeCell}</h1><p style="font-size:1.8rem; margin:20px 0;">${content}</p><p style="opacity:0.6">הקבוצה קוראת את השלב בטלפון ומאשרת...</p>`;
+          const content = tabaData[g.activeCell] || "שלב נוסף בתהליך הסטטוטורי...";
+          document.getElementById('modalContent').innerHTML = `
+            <h1 style="color:var(--blue); font-size:3rem;">משבצת ${g.activeCell}</h1>
+            <p style="font-size:2rem; margin:30px 0; line-height:1.4;">${content}</p>
+            <hr style="border-color:var(--blue); opacity:0.3;">
+            <p style="font-size:1.2rem; opacity:0.6; margin-top:20px;">הקבוצה קוראת ומאשרת בטלפון...</p>
+          `;
         }
       });
     });
