@@ -7,35 +7,46 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root { --blue: #38bdf8; --dark: #020617; }
+    :root { --blue: #38bdf8; --dark: #020617; --gold: #facc15; }
     body { margin: 0; font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; overflow: hidden; }
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
     .active { display: flex; }
-    .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 850px; margin: 0 auto; }
-    .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: #1e293b; }
+    
+    /* לוח המשחק */
+    .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 850px; margin: 0 auto; padding: 10px; }
+    .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: #1e293b; transition: 0.3s; }
     .cell-num { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; opacity: 0.6; }
-    .pawn { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.4rem; box-shadow: 0 0 10px #000; }
-    .btn { background: var(--blue); color: var(--dark); padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
+    
+    /* חיילים מעוצבים */
+    .pawn { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55); border: 3px solid #000; font-size: 1.6rem; box-shadow: 0 0 15px rgba(0,0,0,0.7); }
+    .active-pawn { animation: pulse 1.5s infinite; border-color: var(--gold); transform: scale(1.2); z-index: 101; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(250, 204, 21, 0); } 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0); } }
+
+    .btn { background: var(--blue); color: var(--dark); padding: 15px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.4rem; cursor: pointer; }
     #playersLobby { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; z-index: 1000; align-items: center; justify-content: center; }
-    .modal-content { background: #1e293b; width: 400px; padding: 30px; border-radius: 20px; border: 2px solid var(--blue); }
+    .lobby-card { padding: 15px 25px; border-radius: 40px; display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-weight: bold; color: black; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+
+    /* מודל מידע */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { background: #1e293b; width: 500px; padding: 40px; border-radius: 30px; border: 3px solid var(--blue); box-shadow: 0 0 50px rgba(56, 189, 248, 0.3); }
   </style>
 </head>
 <body>
 
 <div id="lobbyScreen" class="screen active">
-  <h1>🏙️ לובי המשחק - ארז ברוכי</h1>
-  <div style="background:white; padding:15px; border-radius:15px; margin-bottom:20px;"><div id="qrcode"></div></div>
-  <h2 id="lCount">מחכים לשחקנים...</h2>
+  <h1 style="font-size: 3.5rem; color: var(--blue); margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
+  <p style="font-size: 1.5rem; opacity: 0.8; margin-bottom: 30px;">קורס תחיקת הבנייה | ארז ברוכי</p>
+  <div style="background:white; padding:20px; border-radius:20px; margin-bottom:30px;"><div id="qrcode"></div></div>
+  <h2 id="lCount">ממתינים לשחקנים...</h2>
   <div id="playersLobby"></div>
-  <button class="btn" id="startBtn" style="display:none;" onclick="startGame()">🚀 התחל משחק!</button>
+  <button class="btn" id="startBtn" style="display:none;" onclick="startGame()">🚀 מתחילים את התהליך!</button>
 </div>
 
 <div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 20px;">
   <div class="board-grid" id="boardGrid"></div>
-  <div style="position:fixed; bottom:20px; right:20px; background:rgba(0,0,0,0.8); padding:15px; border-radius:15px; border:1px solid var(--blue);">
-    <div style="font-size:0.8rem; opacity:0.7;">תור של:</div>
-    <div id="activeName" style="font-size:1.5rem; font-weight:bold;">-</div>
+  <div style="position:fixed; bottom:30px; right:30px; background:rgba(0,0,0,0.9); padding:20px; border-radius:20px; border:2px solid var(--blue); min-width:250px;">
+    <div style="font-size:1rem; opacity:0.7;">תור של קבוצת:</div>
+    <div id="activeName" style="font-size:2rem; font-weight:bold; color:var(--blue);">-</div>
   </div>
 </div>
 
@@ -50,20 +61,24 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // אתחול לובי
+  // נתוני השלבים מהקוד המקורי
+  const tabaData = {
+    1: "יוזמה ותכנון רעיוני", 7: "בדיקת תנאי סף", 14: "דיון במליאת הוועדה המקומית", 21: "אישור הפקדה בתנאים", 30: "מינוי חוקר לשמיעת התנגדויות", 40: "פרסום אישור ברשומות", 50: "🏡 מתן תוקף סופי!"
+  };
+
   db.ref('game').set({ state: 'lobby', turn: 0, modal: false });
   db.ref('players').remove();
   
   new QRCode(document.getElementById("qrcode"), { 
     text: window.location.href.replace('index.html', '') + "play.html", 
-    width: 150, height: 150 
+    width: 180, height: 180 
   });
 
   db.ref('players').on('value', s => {
     const p = s.val() || {};
     const ids = Object.keys(p);
-    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
-    document.getElementById('lCount').innerText = `${ids.length} מחוברים`;
+    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div class="lobby-card" style="background:${p[id].color}">${p[id].avatar} ${p[id].name}</div>`).join('');
+    document.getElementById('lCount').innerText = `${ids.length} קבוצות מחוברות`;
     document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
   });
 
@@ -92,20 +107,25 @@
     db.ref('players').on('value', s => {
       const ps = s.val() || {};
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      Object.keys(ps).forEach((id, i) => {
-        const p = ps[id];
-        const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar;
-        pawn.style.background = p.color;
-        document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) {
-          const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + window.scrollY + (i*4)) + "px";
-          pawn.style.left = (r.left + (i*4)) + "px";
-        }
+      db.ref('game').once('value', gs => {
+        const turnIdx = gs.val().turn;
+        Object.keys(ps).forEach((id, i) => {
+          const p = ps[id];
+          const pawn = document.createElement('div');
+          pawn.className = 'pawn' + (i === turnIdx ? ' active-pawn' : '');
+          pawn.innerText = p.avatar;
+          pawn.style.background = p.color;
+          document.body.appendChild(pawn);
+          const cell = document.getElementById(`cell-${p.pos + 1}`);
+          if(cell) {
+            const r = cell.getBoundingClientRect();
+            pawn.style.top = (r.top + window.scrollY + (i*4)) + "px";
+            pawn.style.left = (r.left + (i*4)) + "px";
+          }
+        });
       });
     });
+
     db.ref('game').on('value', s => {
       const g = s.val();
       db.ref('players').once('value', psSnap => {
@@ -113,7 +133,10 @@
         const ids = Object.keys(ps);
         if(ids[g.turn]) document.getElementById('activeName').innerText = ps[ids[g.turn]].name;
         document.getElementById('mainModal').style.display = g.modal ? 'flex' : 'none';
-        if(g.modal) document.getElementById('modalContent').innerHTML = `<h2>משבצת ${g.activeCell}</h2><p>השחקן קורא את השלב...</p>`;
+        if(g.modal) {
+          const content = tabaData[g.activeCell] || "שלב נוסף בתהליך הסטטוטורי של התב\"ע...";
+          document.getElementById('modalContent').innerHTML = `<h1 style="color:var(--blue)">משבצת ${g.activeCell}</h1><p style="font-size:1.8rem; margin:20px 0;">${content}</p><p style="opacity:0.6">הקבוצה קוראת את השלב בטלפון ומאשרת...</p>`;
+        }
       });
     });
   }
