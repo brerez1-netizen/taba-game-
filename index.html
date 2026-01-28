@@ -104,7 +104,6 @@
   const db = firebase.database();
   let myId, myRole, selectedIcon = '📐';
 
-  // זיהוי אוטומטי של סטודנט מה-URL (סריקת ה-QR)
   window.onload = () => { if(window.location.search.includes('role=student')) showScreen('setupScreen'); };
 
   function initRole(r) {
