@@ -24,37 +24,44 @@
     .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; box-shadow: 0 0 10px #000; }
     
     #lobbyList { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 30px; }
-    .player-card { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; font-size: 1.2rem; }
+    .player-card { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; font-size: 1.5rem; animation: pop 0.3s ease; }
+    @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
     
-    #qrContainer { background: white; padding: 15px; border-radius: 15px; text-align: center; color: black; margin-bottom: 20px; }
-    .primary-btn { background: var(--stage1); color: #020617; padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; }
+    #qrContainer { background: white; padding: 15px; border-radius: 15px; text-align: center; color: black; margin-bottom: 20px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+    .primary-btn { background: var(--stage1); color: #020617; padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.2s; }
     
-    .dice-btn { width: 120px; height: 120px; border-radius: 30px; border: none; background: #38bdf8; font-size: 3rem; color: white; cursor: pointer; }
-    .dice-btn:disabled { background: #444; opacity: 0.5; }
+    .dice-btn { width: 120px; height: 120px; border-radius: 30px; border: none; background: #38bdf8; font-size: 3rem; color: white; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+    .dice-btn:disabled { background: #444; opacity: 0.5; cursor: not-allowed; }
     
     .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
-    .icon-option { font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; }
+    .icon-option { font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; transition: 0.2s; }
     .icon-option.selected { border-color: var(--stage1); background: rgba(255,255,255,0.1); }
+    
+    #countdown { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; font-size: 12rem; font-weight: bold; color: var(--stage5); }
   </style>
 </head>
 <body>
 
+<div id="countdown">3</div>
+
 <div id="roleScreen" class="screen active">
-  <h1 style="font-size: 3rem; margin-bottom: 20px;">🏙️ משחק תכנון העיר</h1>
+  <h1 style="font-size: 3rem; margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
+  <p style="margin-bottom: 40px; opacity: 0.8;">קורס תחיקת הבנייה | ארז ברוכי</p>
   <button class="primary-btn" onclick="initRole('teacher')" style="background: var(--stage5);">🖥️ מצב מרצה (הקרנה)</button>
   <button class="primary-btn" onclick="initRole('student')" style="margin-top: 15px;">📱 מצב סטודנט (נייד)</button>
 </div>
 
 <div id="lobbyScreen" class="screen">
-  <div id="qrContainer"><div id="qrcode"></div><p style="font-weight: bold; margin-top: 5px;">סרקו והצטרפו!</p></div>
-  <h2 id="lobbyCount" style="font-size: 2rem; margin-bottom: 30px;">מחכים למשתתפים...</h2>
+  <div id="qrContainer"><div id="qrcode"></div><p style="font-weight: bold; margin-top: 10px;">סרקו והצטרפו!</p></div>
+  <h2 id="lobbyCount" style="font-size: 2.2rem; margin-bottom: 30px;">מחכים למשתתפים...</h2>
   <div id="lobbyList"></div>
-  <button id="startBtn" class="primary-btn" style="margin-top: 50px; display: none;" onclick="startGame()">🚀 התחל משחק!</button>
+  <button id="startBtn" class="primary-btn" style="margin-top: 50px; display: none;" onclick="startCountdown()">🚀 התחל משחק!</button>
 </div>
 
 <div id="setupScreen" class="screen">
   <h2>הצטרפות למשחק</h2>
-  <input type="text" id="playerName" placeholder="שם הקבוצה" style="width: 250px; padding: 15px; margin: 20px 0; border-radius: 10px; border: 1px solid var(--stage1); background: #0f172a; color: white;">
+  <input type="text" id="playerName" placeholder="שם הקבוצה" style="width: 280px; padding: 15px; margin: 20px 0; border-radius: 10px; border: 1px solid var(--stage1); background: #0f172a; color: white;">
+  <p>בחרו דמות:</p>
   <div class="icon-grid" id="iconGrid">
     <div class="icon-option" onclick="selectIcon(this, '📐')">📐</div>
     <div class="icon-option" onclick="selectIcon(this, '🏛️')">🏛️</div>
@@ -70,8 +77,9 @@
 
 <div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 20px;">
   <div class="board-grid" id="boardGrid"></div>
-  <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 15px; border: 2px solid var(--stage1);">
-    <div id="activeName" style="font-size: 1.5rem; font-weight: bold;">ממתין...</div>
+  <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.85); padding: 15px; border-radius: 15px; border: 2px solid var(--stage1); min-width: 250px;">
+    <div style="font-size: 0.9rem; opacity: 0.7;">תור של:</div>
+    <div id="activeName" style="font-size: 1.6rem; font-weight: bold;">ממתין...</div>
   </div>
 </div>
 
@@ -96,18 +104,19 @@
   const db = firebase.database();
   let myId, myRole, selectedIcon = '📐';
 
-  // זיהוי אוטומטי של סטודנט מהקישור
+  // זיהוי אוטומטי של סטודנט מה-URL (סריקת ה-QR)
   window.onload = () => { if(window.location.search.includes('role=student')) showScreen('setupScreen'); };
 
   function initRole(r) {
     myRole = r;
     if(r === 'teacher') {
       db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
-      new QRCode(document.getElementById("qrcode"), { text: window.location.href + "?role=student", width: 120, height: 120 });
+      new QRCode(document.getElementById("qrcode"), { text: window.location.href + "?role=student", width: 140, height: 140 });
       showScreen('lobbyScreen');
       db.ref('players').on('value', snap => {
         const p = snap.val() || {};
-        document.getElementById('lobbyList').innerHTML = Object.values(p).map(p => `<div class="player-card">${p.icon} ${p.name}</div>`).join('');
+        const list = document.getElementById('lobbyList');
+        list.innerHTML = Object.values(p).map(player => `<div class="player-card">${player.icon} ${player.name}</div>`).join('');
         document.getElementById('lobbyCount').innerText = `שחקנים מחוברים: ${Object.keys(p).length}`;
         document.getElementById('startBtn').style.display = Object.keys(p).length > 0 ? 'block' : 'none';
       });
@@ -128,17 +137,30 @@
     db.ref('game').on('value', snap => {
       const g = snap.val();
       if(g.state === 'playing') {
-        db.ref('players').once('value', ps => {
-          const ids = Object.keys(ps.val());
-          const myTurn = ids[g.turn] === myId;
-          document.getElementById('diceBtn').disabled = !myTurn;
-          document.getElementById('statusText').innerText = myTurn ? "תורכם! הטילו קובייה" : "ממתינים לתור...";
+        db.ref('players').on('value', psSnap => {
+          const ps = psSnap.val(); if(!ps) return;
+          const ids = Object.keys(ps);
+          const isMyTurn = ids[g.turn] === myId;
+          document.getElementById('diceBtn').disabled = !isMyTurn;
+          document.getElementById('statusText').innerText = isMyTurn ? "תורכם! הטילו קובייה" : `ממתינים לתור של: ${ps[ids[g.turn]].name}`;
         });
       }
     });
   }
 
-  function startGame() { db.ref('game').update({ state: 'playing' }); showScreen('gameScreen'); renderBoard(); listenPlayers(); }
+  function startCountdown() {
+    let sec = 3;
+    const el = document.getElementById('countdown');
+    el.style.display = 'flex';
+    const timer = setInterval(() => {
+      sec--; el.textContent = sec;
+      if(sec <= 0) {
+        clearInterval(timer); el.style.display = 'none';
+        db.ref('game').update({ state: 'playing' });
+        showScreen('gameScreen'); renderBoard(); listenPlayers();
+      }
+    }, 1000);
+  }
 
   function renderBoard() {
     const grid = document.getElementById('boardGrid'); grid.innerHTML = '';
@@ -171,7 +193,7 @@
       });
       db.ref('game').once('value', g => {
         const ids = Object.keys(ps);
-        if(ids[g.val().turn]) document.getElementById('activeName').innerText = `תור של: ${ps[ids[g.val().turn]].name}`;
+        if(ids[g.val().turn]) document.getElementById('activeName').innerText = ps[ids[g.val().turn]].name;
       });
     });
   }
