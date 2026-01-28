@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ לוח תכנון העיר - ארז ברוכי (מצב בדיקה)</title>
+  <title>🏙️ לוח תכנון העיר - ארז ברוכי</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -17,30 +17,28 @@
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.02); z-index: 5; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-    .status-item { background: var(--card); padding: 15px; border-radius: 12px; border-right: 4px solid var(--blue); margin-bottom: 10px; }
     #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; }
+    .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
+    .active-p { border-right-color: var(--gold); background: #2d3748; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay">
-  <h1 style="color: var(--blue); font-size: 3rem;">🏙️ לוח תכנון העיר - בדיקת נראות</h1>
+  <h1 style="color: var(--blue); font-size: 3rem;">🏙️ לוח תכנון העיר - בדיקה</h1>
   <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
   <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל בדיקת לוח</button>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק / בדיקה</button>
 </div>
 
 <div id="gameScreen" class="main-layout" style="visibility: hidden;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב תהליך</h2>
-    <div style="font-size: 5rem; text-align: center; margin: 15px 0;">🎲</div>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto;">
-        <div class="status-item">
-            <div style="font-weight:bold;">מצב בדיקה</div>
-            <div style="font-size:0.8rem; opacity:0.6;">כל התמונות נמשכות ממחיצה אחת</div>
-        </div>
-    </div>
+    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב הקבוצות</h2>
+    <div style="font-size: 5rem; text-align: center; margin: 15px 0;" id="mainDice">🎲</div>
+    <div id="turnText" style="font-size:1.5rem; text-align:center; margin-bottom:20px; font-weight:bold; color:var(--gold);">-</div>
+    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -63,14 +61,16 @@
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       for(let c=1; c<=10; c++) {
         const num = (r * 10) + c;
-        const stage = Math.ceil(num / 10);
-        const fileName = String(num).padStart(2, '0');
+        const stagePrefix = Math.ceil(num / 10); // מזהה את ה-m1, m2 וכו'
+        const innerNum = (num % 10 === 0) ? 10 : (num % 10);
+        const fileName = String(innerNum).padStart(2, '0');
+        
         const cell = document.createElement('div');
         cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
         cell.id = `cell-${num}`;
         
-        // תיקון נתיב: הכל יושב יחד תחת images/
-        const imgPath = `images/m${stage}-${fileName}.jpeg?v=${ts}`;
+        // תיקון נתיב לשמות הקבצים שלך ב-GitHub
+        const imgPath = `images/m${stagePrefix}-${fileName}.jpeg?v=${ts}`;
         cell.style.backgroundImage = `url('${imgPath}')`; 
         cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
@@ -80,9 +80,46 @@
   }
 
   function startGame() {
+    db.ref('game').update({ state: 'playing' });
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
     initBoard();
+    listenPlayers();
+  }
+
+  function listenPlayers() {
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      const ids = Object.keys(ps);
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      db.ref('game').once('value', gs => {
+        const turnIdx = gs.val().turn;
+        document.getElementById('playersStatusList').innerHTML = ids.map((id, idx) => {
+          const p = ps[id]; const isActive = idx === turnIdx;
+          const pawn = document.createElement('div');
+          pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+          document.body.appendChild(pawn);
+          const cell = document.getElementById(`cell-${p.pos + 1}`);
+          if(cell) {
+            const r = cell.getBoundingClientRect();
+            pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+          }
+          return `<div class="player-entry ${isActive ? 'active-p' : ''}">
+              <div style="font-size:2rem;">${p.avatar}</div>
+              <div style="flex:1; margin-right:12px;">
+                <div style="font-weight:bold;">${p.name}</div>
+                <div style="font-size:0.8rem; color:var(--blue);">משבצת: ${p.pos + 1}</div>
+              </div>
+              <div style="font-weight:bold; color:var(--gold);">${(p.pos + 1) * 10} נק'</div>
+            </div>`;
+        }).join('');
+        if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור: " + ps[ids[turnIdx]].name;
+      });
+    });
+    db.ref('game').on('value', s => {
+      const g = s.val();
+      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1] || g.lastRoll;
+    });
   }
 
   clearDatabase();
