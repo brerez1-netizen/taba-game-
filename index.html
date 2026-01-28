@@ -18,9 +18,9 @@
     .milestone { border: 4px solid var(--gold); transform: scale(1.03); z-index: 5; box-shadow: 0 0 15px var(--gold); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
     .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
-    .active-p { border-right-color: var(--gold); background: #2d3748; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
-    .dice-box { font-size: 5rem; text-align: center; margin: 15px 0; text-shadow: 0 0 15px var(--blue); }
-    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
+    .active-p { border-right-color: var(--gold); background: #2d3748; }
+    .dice-box { font-size: 5rem; text-align: center; margin: 15px 0; }
+    .pawn { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 2rem; }
     #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
@@ -44,26 +44,19 @@
 </div>
 
 <script>
-  const config = { 
-    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", 
-    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", 
-    projectId: "erez-taba-game" 
-  };
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
   const milestones = [1, 15, 21, 30, 42, 50];
 
-  // איפוס מוחלט של כל הנתונים בכל פתיחה של דף המרצה
   function clearDatabase() {
-    db.ref('/').set({ 
-      game: { state: 'lobby', turn: 0, lastRoll: 0 }, 
-      players: {} 
-    });
+    db.ref('/').set({ game: { state: 'lobby', turn: 0, lastRoll: 0 }, players: {} });
   }
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
     container.innerHTML = '';
+    const timestamp = new Date().getTime(); // למניעת בעיות זיכרון דפדפן
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
@@ -71,11 +64,13 @@
         const num = (r * 10) + c;
         const stage = Math.ceil(num / 10);
         const fileName = String(num).padStart(2, '0');
-        
         const cell = document.createElement('div');
         cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
         cell.id = `cell-${num}`;
-        cell.style.backgroundImage = `url('images/m${stage}-${fileName}.jpeg')`; 
+        
+        // טעינה עם Cache-Busting
+        const imgPath = `images/m${stage}-${fileName}.jpeg?v=${timestamp}`;
+        cell.style.backgroundImage = `url('${imgPath}')`; 
         cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -87,8 +82,7 @@
     db.ref('game').update({ state: 'playing' });
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
-    initBoard(); 
-    listenPlayers();
+    initBoard(); listenPlayers();
   }
 
   function listenPlayers() {
@@ -122,14 +116,12 @@
     });
     db.ref('game').on('value', s => {
       const g = s.val();
-      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1] || g.lastRoll;
+      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1];
     });
   }
 
-  // הפעלה: איפוס נתונים ויצירת QR
   clearDatabase();
   new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
-  
   db.ref('players').on('value', s => {
     const p = s.val() || {};
     document.getElementById('playersLobby').innerHTML = Object.keys(p).map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
