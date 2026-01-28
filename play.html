@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>📱 שלט שחקן - תכנון העיר</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; padding: 20px; }
+    .screen { display: none; flex-direction: column; align-items: center; }
+    .active { display: flex; }
+    .btn { background: #38bdf8; color: #000; padding: 20px; border-radius: 15px; border: none; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1.2rem; }
+    .dice-btn { width: 120px; height: 120px; font-size: 4rem; border-radius: 30px; border: none; background: #38bdf8; color: white; margin: 40px 0; }
+    .dice-btn:disabled { background: #444; opacity: 0.5; }
+    input, select { padding: 15px; width: 100%; border-radius: 10px; margin-bottom: 10px; border: 2px solid #38bdf8; background: #0f172a; color: white; }
+  </style>
+</head>
+<body>
+
+<div id="setup" class="screen active">
+  <h2>עיצוב דמות</h2>
+  <input type="text" id="pName" placeholder="שם הקבוצה">
+  <select id="role"><option value="👷‍♂️">אדריכל</option><option value="⚖️">עו"ד</option><option value="🏗️">יזם</option></select>
+  <select id="color"><option value="#38bdf8">כחול</option><option value="#f472b6">ורוד</option><option value="#4ade80">ירוק</option></select>
+  <button class="btn" onclick="join()">הצטרפות ללובי</button>
+</div>
+
+<div id="play" class="screen">
+  <h2 id="status">המתינו למרצה...</h2>
+  <button id="diceBtn" class="dice-btn" onclick="roll()" disabled>🎲</button>
+  <div id="modal" style="display:none; background:#1e293b; padding:20px; border-radius:15px; border:2px solid #38bdf8;">
+    <h3 id="mTitle"></h3>
+    <button class="btn" onclick="next()">המשך</button>
+  </div>
+</div>
+
+<script>
+  const config = {
+    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
+    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/",
+    projectId: "erez-taba-game"
+  };
+  firebase.initializeApp(config);
+  const db = firebase.database();
+  let myId, myTurn = false;
+
+  function join() {
+    const name = document.getElementById('pName').value;
+    if(!name) return alert("הכנס שם");
+    const pRef = db.ref('players').push();
+    myId = pRef.key;
+    pRef.set({ name, avatar: document.getElementById('role').value, color: document.getElementById('color').value, pos: 0, id: myId });
+    document.getElementById('setup').classList.remove('active');
+    document.getElementById('play').classList.add('active');
+    
+    db.ref('game').on('value', s => {
+      const g = s.val();
+      db.ref('players').once('value', psSnap => {
+        const ps = psSnap.val() || {};
+        const ids = Object.keys(ps);
+        myTurn = ids[g.turn] === myId;
+        document.getElementById('diceBtn').disabled = !myTurn || g.modal || g.state !== 'playing';
+        document.getElementById('status').innerText = myTurn ? "תורכם! הטילו קובייה" : `תור של: ${ps[ids[g.turn]]?.name || 'ממתין'}`;
+        document.getElementById('modal').style.display = (g.modal && myTurn) ? 'block' : 'none';
+        if(g.modal) document.getElementById('mTitle').innerText = "משבצת " + g.activeCell;
+      });
+    });
+  }
+
+  function roll() {
+    const steps = Math.floor(Math.random() * 6) + 1;
+    document.getElementById('diceBtn').innerText = steps;
+    db.ref(`players/${myId}`).once('value', s => {
+      const newPos = Math.min(49, s.val().pos + steps);
+      db.ref(`players/${myId}`).update({ pos: newPos });
+      setTimeout(() => db.ref('game').update({ modal: true, activeCell: newPos + 1 }), 1200);
+    });
+  }
+
+  function next() {
+    db.ref('players').once('value', ps => {
+      const count = Object.keys(ps.val()).length;
+      db.ref('game').once('value', g => {
+        db.ref('game').update({ turn: (g.val().turn + 1) % count, modal: false });
+        document.getElementById('diceBtn').innerText = "🎲";
+      });
+    });
+  }
+</script>
+</body>
+</html>
