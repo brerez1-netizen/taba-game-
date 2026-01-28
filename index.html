@@ -17,8 +17,8 @@
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.02); z-index: 5; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-    #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
+    #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
@@ -42,8 +42,8 @@
   const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
-
-  // הגדרת תחומי השלבים כפי ששלחת
+  
+  // הגדרת תחומי השלבים המדויקים ששלחת
   const stages = [
     { id: 1, start: 1 },
     { id: 2, start: 8 },
@@ -53,15 +53,13 @@
   ];
 
   function getFileNameForCell(num) {
-    // מוצא את השלב הנוכחי למשבצת
     let currentStage = stages[0];
     for (let s of stages) {
       if (num >= s.start) currentStage = s;
     }
-    
-    // חישוב מספר הקובץ בתוך השלב (למשל משבצת 8 היא הראשונה בשלב 2 -> 01)
-    const innerNum = (num - currentStage.start) + 1;
-    return `m${currentStage.id}-${String(innerNum).padStart(2, '0')}`;
+    // חישוב המיקום היחסי בתוך השלב (למשל: משבצת 8 היא הראשונה בשלב 2 -> תוצאה 1)
+    const relativePos = (num - currentStage.start) + 1;
+    return `m${currentStage.id}-${String(relativePos).padStart(2, '0')}.jpeg`;
   }
 
   function initBoard() {
@@ -75,13 +73,13 @@
       for(let c=1; c<=10; c++) {
         const globalNum = (r * 10) + c;
         const cell = document.createElement('div');
-        // הדגשת משבצות פתיחת שלב
         const isStartOfStage = stages.some(s => s.start === globalNum);
         cell.className = 'cell' + (isStartOfStage ? ' milestone' : '');
         cell.id = `cell-${globalNum}`;
         
         const fileName = getFileNameForCell(globalNum);
-        cell.style.backgroundImage = `url('images/${fileName}.jpeg?v=${ts}')`; 
+        // טעינה ישירה ממחיצת images
+        cell.style.backgroundImage = `url('images/${fileName}?v=${ts}')`; 
         cell.innerHTML = `<div class="cell-num">${globalNum}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -93,25 +91,6 @@
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
     initBoard();
-    listenPlayers();
-  }
-
-  function listenPlayers() {
-    db.ref('players').on('value', s => {
-      const ps = s.val() || {};
-      document.querySelectorAll('.pawn').forEach(p => p.remove());
-      Object.keys(ps).forEach(id => {
-        const p = ps[id];
-        const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
-        document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) {
-          const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
-        }
-      });
-    });
   }
 
   db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
