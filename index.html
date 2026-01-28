@@ -11,22 +11,18 @@
     :root { --blue: #38bdf8; --dark: #020617; }
     body { margin: 0; font-family: system-ui, sans-serif; background: #020617; color: white; text-align: center; overflow-x: hidden; }
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
-    .active { display: flex; }
+    .screen.active { display: flex; }
     
-    /* לוח המשחק */
     .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 900px; margin: 0 auto; padding: 10px; }
-    .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-blend-mode: multiply; background-color: rgba(15, 23, 42, 0.7); }
-    .cell-num { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; opacity: 0.6; }
+    .cell { aspect-ratio: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: #1e293b; }
+    .cell-num { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; opacity: 0.6; color: white; }
     
-    /* חיילים */
-    .pawn { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid #000; font-size: 1.1rem; box-shadow: 0 0 10px #000; }
+    .pawn { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.2rem; }
     
-    /* כפתורים ועיצוב כללי */
     .btn { background: var(--blue); color: var(--dark); padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
-    .dice-btn { width: 100px; height: 100px; font-size: 3rem; border-radius: 25px; border: none; background: var(--blue); color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+    .dice-btn { width: 100px; height: 100px; font-size: 3rem; border-radius: 25px; border: none; background: var(--blue); color: white; }
     .dice-btn:disabled { background: #444; opacity: 0.5; }
     
-    /* מודל שאלות */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
     .modal-content { background: #1e293b; width: 100%; max-width: 450px; border-radius: 20px; padding: 30px; border: 2px solid var(--blue); }
   </style>
@@ -82,7 +78,7 @@
   };
   firebase.initializeApp(config);
   const db = firebase.database();
-  let myId, myRole, players = {};
+  let myId, myRole, playersCache = {};
 
   const info = {
     1: "יוזמה: הכל מתחיל מרעיון.", 15: "בדיקה מקדמית: תנאי סף.", 22: "הפקדה: התכנית נחשפת.",
@@ -92,17 +88,20 @@
   function initView(r) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     if(r === 'teacher') {
-      db.ref('/').set({ game: { state: 'lobby', turn: 0, modal: false }, players: {} });
+      db.ref('game').update({ state: 'lobby', turn: 0, modal: false });
+      db.ref('players').remove();
       document.getElementById('lobbyScreen').classList.add('active');
       new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0] + "?role=student", width: 140, height: 140 });
       db.ref('players').on('value', s => {
-        players = s.val() || {};
-        const ids = Object.keys(players);
-        document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${players[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${players[id].avatar} ${players[id].name}</div>`).join('');
+        playersCache = s.val() || {};
+        const ids = Object.keys(playersCache);
+        document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${playersCache[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold; margin:5px;">${playersCache[id].avatar} ${playersCache[id].name}</div>`).join('');
         document.getElementById('lCount').innerText = `${ids.length} מחוברים`;
         document.getElementById('startBtn').style.display = ids.length > 0 ? 'block' : 'none';
       });
-    } else { document.getElementById('setupScreen').classList.add('active'); }
+    } else { 
+      document.getElementById('setupScreen').classList.add('active'); 
+    }
   }
 
   if(window.location.search.includes('role=student')) initView('student');
@@ -126,17 +125,21 @@
         const ids = Object.keys(ps);
         const isMyTurn = ids[g.turn] === myId;
         document.getElementById('diceBtn').disabled = !isMyTurn || g.modal;
-        document.getElementById('statusText').innerText = isMyTurn ? "תורכם! הטילו קובייה" : `תור של: ${ps[ids[g.turn]]?.name || 'ממתין'}`;
-        if(g.modal && isMyTurn) showModal(g.activeCell); else closeModal();
+        document.getElementById('statusText').innerText = isMe ? "תורכם! הטילו קובייה" : (ids[g.turn] ? `תור של: ${ps[ids[g.turn]].name}` : "ממתינים...");
+        if(g.modal && isMyTurn) showModal(g.activeCell); else if(!g.modal) closeModal();
       });
     });
   }
 
-  function startGame() { db.ref('game').update({ state: 'playing' }); initBoard(); listenTeacher(); }
+  function startGame() { 
+    db.ref('game').update({ state: 'playing' }); 
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('gameScreen').classList.add('active');
+    initBoard(); 
+    listenTeacher(); 
+  }
 
   function initBoard() {
-    document.getElementById('lobbyScreen').classList.remove('active');
-    document.getElementById('gameScreen').classList.add('active');
     const grid = document.getElementById('boardGrid'); grid.innerHTML = '';
     for(let i=1; i<=50; i++) {
       const row = Math.floor((i-1)/5);
@@ -168,10 +171,12 @@
       });
     });
     db.ref('game').on('value', s => {
-      db.ref('players').once('value', ps => {
-        const active = ps.val()[Object.keys(ps.val())[s.val().turn]];
-        document.getElementById('activeName').innerText = active.name;
-        if(s.val().modal) showModal(s.val().activeCell); else closeModal();
+      const g = s.val();
+      db.ref('players').once('value', psSnap => {
+        const ps = psSnap.val() || {};
+        const ids = Object.keys(ps);
+        if(ids[g.turn]) document.getElementById('activeName').innerText = ps[ids[g.turn]].name;
+        if(g.modal) showModal(g.activeCell); else closeModal();
       });
     });
   }
@@ -182,13 +187,13 @@
     db.ref(`players/${myId}`).once('value', s => {
       const newPos = Math.min(49, s.val().pos + steps);
       db.ref(`players/${myId}`).update({ pos: newPos });
-      setTimeout(() => { db.ref('game').update({ modal: true, activeCell: newPos + 1 }); }, 1000);
+      setTimeout(() => { db.ref('game').update({ modal: true, activeCell: newPos + 1 }); }, 1200);
     });
   }
 
   function showModal(n) {
-    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0;">${info[n] || 'מתקדמים בתהליך התכנון...'}</p>` + 
-      (myId ? `<button class="btn" onclick="next()">המשך</button>` : `<p>השחקן קורא...</p>`);
+    document.getElementById('modalContent').innerHTML = `<h2>משבצת ${n}</h2><p style="margin:15px 0; font-size:1.2rem;">${info[n] || 'מתקדמים בתהליך התכנון הסטטוטורי...'}</p>` + 
+      (myId ? `<button class="btn" onclick="next()">הבנתי, המשך</button>` : `<p>השחקן קורא את השלב...</p>`);
     document.getElementById('mainModal').style.display = 'flex';
   }
 
