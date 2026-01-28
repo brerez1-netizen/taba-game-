@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ משחק תכנון העיר - המהדורה הסופית</title>
+  <title>🏙️ משחק תכנון העיר - המהדורה המלאה</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   
   <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
@@ -13,65 +13,95 @@
     :root { --stage1: #38bdf8; --stage2: #6366f1; --stage3: #22c55e; --stage4: #f97316; --stage5: #facc15; --bg-dark: #020617; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: system-ui, sans-serif; background: var(--bg-dark); color: #e5f4ff; overflow-x: hidden; }
-    .screen { display: none; min-height: 100vh; padding: 15px; flex-direction: column; }
+    .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
     .screen.active { display: flex; }
-    .board-container { width: 100%; max-width: 1000px; margin: 0 auto; padding-bottom: 160px; }
-    .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-    .cell { aspect-ratio: 1; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); position: relative; display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; background-blend-mode: multiply; background-color: rgba(15, 23, 42, 0.8); font-weight: bold; color: white; overflow: hidden; }
+    
+    /* לוח משחק */
+    .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 1000px; margin: 0 auto; }
+    .cell { aspect-ratio: 1; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); position: relative; background-size: cover; background-position: center; background-blend-mode: multiply; background-color: rgba(15, 23, 42, 0.8); }
     .cell-label { z-index: 1; padding: 5px; background: rgba(0,0,0,0.7); width: 100%; position: absolute; bottom: 0; font-size: 0.7rem; text-align: center; }
     .cell-num { position: absolute; top: 4px; right: 6px; font-size: 0.8rem; opacity: 0.8; }
-    .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; position: absolute; z-index: 100; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 0 15px rgba(0,0,0,0.9); border: 2.5px solid #000; }
-    #qrContainer { position: fixed; top: 20px; left: 20px; background: white; padding: 15px; border-radius: 15px; z-index: 500; text-align: center; color: black; box-shadow: 0 0 30px rgba(0,0,0,0.7); }
-    .dice-btn { width: 110px; height: 110px; background: linear-gradient(135deg, #0ea5e9, #2563eb); border-radius: 30px; border: none; font-size: 3rem; color: white; cursor: pointer; }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; z-index: 1000; padding: 20px; }
-    .modal.active { display: flex; align-items: center; justify-content: center; }
-    .modal-content { background: #1e293b; width: 100%; max-width: 550px; border-radius: 30px; padding: 30px; border: 4px solid var(--stage1); text-align: center; }
-    .primary-btn { background: #38bdf8; color: #020617; padding: 18px; border-radius: 15px; border: none; font-weight: bold; width: 100%; font-size: 1.2rem; cursor: pointer; margin-top: 20px; }
-    input, select { width: 100%; padding: 16px; margin: 12px 0; border-radius: 10px; border: 2px solid #38bdf8; background: #020617; color: white; font-size: 1.1rem; }
     
-    /* רשימת שחקנים מחוברים למרצה */
-    #playersList { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-    .player-tag { background: rgba(56, 189, 248, 0.2); border: 1px solid var(--stage1); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; }
+    /* שחקנים */
+    .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; position: absolute; z-index: 100; transition: all 0.6s ease-in-out; border: 2px solid #000; box-shadow: 0 0 10px #000; }
+    
+    /* לובי ו-QR */
+    #lobbyList { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 30px; }
+    .player-card { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; font-size: 1.2rem; animation: pop 0.3s ease; }
+    @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+    
+    #qrContainer { background: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align: center; color: black; }
+    
+    /* כפתורים */
+    .primary-btn { background: var(--stage1); color: #020617; padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.2s; }
+    .primary-btn:hover { transform: scale(1.05); background: #7dd3fc; }
+    
+    /* סטטוס תור */
+    .turn-status { position: fixed; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 15px 25px; border-radius: 20px; border: 2px solid var(--stage1); display: flex; align-items: center; gap: 15px; }
+    
+    /* ספירה לאחור */
+    #countdown { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; font-size: 10rem; font-weight: bold; color: var(--stage5); }
+    
+    /* דמויות לבחירה */
+    .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+    .icon-option { font-size: 2.5rem; padding: 10px; border: 3px solid transparent; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+    .icon-option.selected { border-color: var(--stage1); background: rgba(56, 189, 248, 0.2); }
   </style>
 </head>
 <body>
 
-<div id="roleScreen" class="screen active" style="justify-content: center; text-align: center;">
-  <h1 style="color: var(--stage1); font-size: 2.8rem; margin-bottom: 40px;">🏙️ משחק תכנון העיר</h1>
-  <button class="primary-btn" onclick="initRole('teacher')" style="background: #facc15;">🖥️ אני המרצה (לוח כיתתי)</button>
-  <button class="primary-btn" onclick="initRole('student')">📱 אני סטודנט (הצטרפות מהנייד)</button>
+<div id="countdown">3</div>
+
+<div id="roleScreen" class="screen active">
+  <h1 style="font-size: 3rem; margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
+  <p style="margin-bottom: 40px; opacity: 0.8;">קורס תחיקת הבנייה | ארז ברוכי</p>
+  <button class="primary-btn" onclick="initRole('teacher')" style="background: var(--stage5);">🖥️ אני המרצה - התחל לובי</button>
+  <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.5;">סטודנטים: נא לסרוק את הקוד שיופיע</p>
+</div>
+
+<div id="lobbyScreen" class="screen">
+  <div id="qrContainer">
+    <div id="qrcode"></div>
+    <p style="margin-top: 10px; font-weight: bold;">סרקו כדי להצטרף!</p>
+  </div>
+  <h2 id="lobbyCount">מחכים לסטודנטים... (0 הצטרפו)</h2>
+  <div id="lobbyList"></div>
+  <button id="startBtn" class="primary-btn" style="margin-top: 40px; display: none;" onclick="startCountdown()">🚀 הפעל משחק</button>
 </div>
 
 <div id="setupScreen" class="screen">
-  <h2>הצטרפות לקבוצה</h2>
-  <input type="text" id="playerName" placeholder="שם הקבוצה">
-  <select id="playerIcon">
-    <option value="📐">📐 אדריכל/ית</option>
-    <option value="🏛️">🏛️ מתכנן/ת</option>
-    <option value="🏗️">🏗️ יזם/ית</option>
-  </select>
-  <button class="primary-btn" onclick="joinGame()">היכנסו למשחק</button>
-</div>
-
-<div id="gameScreen" class="screen">
-  <div id="qrContainer">
-    <div id="qrcode"></div>
-    <p style="margin-top: 8px; font-weight: bold; font-size: 0.8rem;">סרקו להצטרפות</p>
+  <h2>הצטרפות למשחק</h2>
+  <input type="text" id="playerName" placeholder="שם הקבוצה / שם סטודנט" style="width: 100%; max-width: 300px; padding: 15px; margin: 20px 0; border-radius: 10px; background: #0f172a; color: white; border: 1px solid var(--stage1);">
+  <p>בחרו דמות:</p>
+  <div class="icon-grid" id="iconGrid">
+    <div class="icon-option" onclick="selectIcon(this, '📐')">📐</div>
+    <div class="icon-option" onclick="selectIcon(this, '🏛️')">🏛️</div>
+    <div class="icon-option" onclick="selectIcon(this, '🏗️')">🏗️</div>
+    <div class="icon-option" onclick="selectIcon(this, '⚖️')">⚖️</div>
+    <div class="icon-option" onclick="selectIcon(this, '🎨')">🎨</div>
+    <div class="icon-option" onclick="selectIcon(this, '🏡')">🏡</div>
+    <div class="icon-option" onclick="selectIcon(this, '🏢')">🏢</div>
+    <div class="icon-option" onclick="selectIcon(this, '🌳')">🌳</div>
   </div>
-  <div class="board-container"><div id="boardGrid" class="board-grid"></div></div>
-  <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 15px; border: 2px solid var(--stage1); min-width: 300px;">
-    <div id="teacherTurnInfo" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">ממתין לשחקנים...</div>
-    <div id="playersList"></div>
+  <button class="primary-btn" onclick="joinGame()">הצטרפות</button>
+</div>
+
+<div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 40px;">
+  <div class="board-grid" id="boardGrid"></div>
+  <div class="turn-status">
+    <div id="activePawn" style="font-size: 2rem;"></div>
+    <div>
+      <div style="font-size: 0.8rem; opacity: 0.7;">תור של:</div>
+      <div id="activeName" style="font-size: 1.2rem; font-weight: bold;">---</div>
+    </div>
   </div>
 </div>
 
-<div id="remoteScreen" class="screen" style="justify-content: center; text-align: center;">
-  <h2 id="statusText" style="color: var(--stage1); margin-bottom: 20px;">מתחבר...</h2>
-  <button id="diceBtn" class="dice-btn" onclick="requestRoll()" disabled>🎲</button>
-</div>
-
-<div id="mainModal" class="modal">
-  <div class="modal-content" id="modalContent"></div>
+<div id="remoteScreen" class="screen">
+  <h2 id="statusText">ממתינים לתחילת המשחק...</h2>
+  <div style="margin: 40px 0;">
+    <button id="diceBtn" class="dice-btn" style="width:120px; height:120px; border-radius:30px; border:none; background:gray; font-size:3rem;" onclick="rollDice()" disabled>🎲</button>
+  </div>
 </div>
 
 <script>
@@ -91,23 +121,88 @@
 
   let myId = null;
   let myRole = null;
+  let selectedIcon = '📐';
   const boardData = [];
-  for(let i=1; i<=50; i++) {
-    boardData.push({ num: i, stage: Math.ceil(i/10), title: i==1 ? "יוזמה ראשונית" : i==50 ? "מתן תוקף" : `שלב ${i}`, text: "מידע מקצועי על התהליך." });
+
+  for(let i=1; i<=50; i++) boardData.push({ num: i, stage: Math.ceil(i/10) });
+
+  // זיהוי אוטומטי אם זה סטודנט (לפי URL או חוסר בחירה)
+  window.onload = () => {
+    if(window.location.search.includes('role=student')) {
+      showScreen('setupScreen');
+    }
+  };
+
+  function selectIcon(el, icon) {
+    document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedIcon = icon;
   }
 
   function initRole(role) {
     myRole = role;
     if(role === 'teacher') {
-      db.ref('gameState').set({ currentTurnIdx: 0, modalVisible: false });
+      db.ref('game').set({ state: 'lobby', currentTurn: 0 });
       db.ref('players').remove();
-      renderBoard();
-      listenToPlayers();
-      new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0], width: 120, height: 120 });
-      showScreen('gameScreen');
-    } else {
-      showScreen('setupScreen');
+      new QRCode(document.getElementById("qrcode"), { 
+        text: window.location.href.split('?')[0] + "?role=student", 
+        width: 150, height: 150 
+      });
+      showScreen('lobbyScreen');
+      listenToLobby();
     }
+  }
+
+  function listenToLobby() {
+    db.ref('players').on('value', snap => {
+      const players = snap.val() || {};
+      const list = document.getElementById('lobbyList');
+      const count = Object.keys(players).length;
+      list.innerHTML = '';
+      Object.values(players).forEach(p => {
+        list.innerHTML += `<div class="player-card">${p.icon} ${p.name}</div>`;
+      });
+      document.getElementById('lobbyCount').textContent = `שחקנים מחוברים: ${count}`;
+      document.getElementById('startBtn').style.display = count > 0 ? 'block' : 'none';
+    });
+  }
+
+  function joinGame() {
+    const name = document.getElementById('playerName').value || "קבוצה";
+    const pRef = db.ref('players').push();
+    myId = pRef.key;
+    pRef.set({ name, icon: selectedIcon, pos: 0, id: myId });
+    showScreen('remoteScreen');
+    listenToGameStatus();
+  }
+
+  function startCountdown() {
+    let sec = 3;
+    const el = document.getElementById('countdown');
+    el.style.display = 'flex';
+    const timer = setInterval(() => {
+      sec--;
+      el.textContent = sec;
+      if(sec <= 0) {
+        clearInterval(timer);
+        el.style.display = 'none';
+        db.ref('game').update({ state: 'playing' });
+      }
+    }, 1000);
+  }
+
+  function listenToGameStatus() {
+    db.ref('game').on('value', snap => {
+      const game = snap.val();
+      if(game.state === 'playing') {
+        if(myRole === 'teacher') {
+          showScreen('gameScreen');
+          renderBoard();
+          listenToPlayers();
+        }
+        updateTurnUI(game.currentTurn);
+      }
+    });
   }
 
   function renderBoard() {
@@ -118,40 +213,21 @@
       const row = Math.floor((cell.num-1) / 5);
       const isRev = row % 2 !== 0;
       const displayIdx = isRev ? (row * 5) + (5 - ((cell.num-1) % 5)) : cell.num;
-      div.className = `cell stage${boardData[displayIdx-1].stage}`;
+      div.className = 'cell';
       div.id = `cell-${displayIdx}`;
-      // ניסיון לטעון jpeg, אם לא קיים הרקע יישאר כהה
       div.style.backgroundImage = `url('images/m${boardData[displayIdx-1].stage}-${String(displayIdx).padStart(2,'0')}.jpeg')`;
-      div.innerHTML = `<span class="cell-num">${displayIdx}</span><div class="cell-label">${boardData[displayIdx-1].title}</div>`;
+      div.innerHTML = `<span class="cell-num">${displayIdx}</span>`;
       grid.appendChild(div);
     });
-  }
-
-  function joinGame() {
-    const name = document.getElementById('playerName').value || "קבוצה";
-    const icon = document.getElementById('playerIcon').value;
-    const pRef = db.ref('players').push();
-    myId = pRef.key;
-    pRef.set({ name, icon, pos: 0, id: myId });
-    showScreen('remoteScreen');
-    listenToGameState();
   }
 
   function listenToPlayers() {
     db.ref('players').on('value', snap => {
       const players = snap.val();
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      const listDiv = document.getElementById('playersList');
-      listDiv.innerHTML = '';
       if(!players) return;
       Object.keys(players).forEach((id, i) => {
         const p = players[id];
-        // רשימה למרצה
-        const tag = document.createElement('div');
-        tag.className = 'player-tag';
-        tag.textContent = `${p.icon} ${p.name}`;
-        listDiv.appendChild(tag);
-        // כלי על הלוח
         const pawn = document.createElement('div');
         pawn.className = 'pawn';
         pawn.textContent = p.icon;
@@ -166,56 +242,44 @@
     });
   }
 
-  function listenToGameState() {
-    db.ref('gameState').on('value', snap => {
-      const state = snap.val();
-      db.ref('players').on('value', pSnap => {
-        const players = pSnap.val();
-        if(!players || !state) return;
-        const ids = Object.keys(players);
-        const isMyTurn = ids[state.currentTurnIdx] === myId;
-        const activeName = players[ids[state.currentTurnIdx]].name;
-        
-        if(myRole === 'student') {
-          document.getElementById('diceBtn').disabled = !isMyTurn;
-          document.getElementById('statusText').textContent = isMyTurn ? "תורכם! הטילו קובייה" : `ממתין ל: ${activeName}`;
-        } else {
-          document.getElementById('teacherTurnInfo').textContent = `תור של: ${activeName}`;
-        }
-        if(state.modalVisible) showModal(state.activeCellNum);
-        else closeModal();
-      });
+  function updateTurnUI(idx) {
+    db.ref('players').once('value', snap => {
+      const players = snap.val();
+      if(!players) return;
+      const ids = Object.keys(players);
+      const activePlayer = players[ids[idx]];
+      
+      if(myRole === 'teacher') {
+        document.getElementById('activePawn').textContent = activePlayer.icon;
+        document.getElementById('activeName').textContent = activePlayer.name;
+      }
+      
+      const isMyTurn = ids[idx] === myId;
+      const btn = document.getElementById('diceBtn');
+      if(btn) {
+        btn.disabled = !isMyTurn;
+        btn.style.background = isMyTurn ? 'linear-gradient(135deg, #0ea5e9, #2563eb)' : 'gray';
+        document.getElementById('statusText').textContent = isMyTurn ? "תורכם! הטילו קובייה" : `תור של: ${activePlayer.name}`;
+      }
     });
   }
 
-  async function requestRoll() {
+  function rollDice() {
     const steps = Math.floor(Math.random() * 6) + 1;
     document.getElementById('diceBtn').textContent = steps;
     db.ref(`players/${myId}`).once('value', s => {
       let newPos = Math.min(49, s.val().pos + steps);
       db.ref(`players/${myId}`).update({ pos: newPos });
       setTimeout(() => {
-        db.ref('gameState').update({ modalVisible: true, activeCellNum: newPos + 1 });
-        document.getElementById('diceBtn').textContent = "🎲";
-      }, 1500);
-    });
-  }
-
-  function showModal(cellNum) {
-    const data = boardData[cellNum-1];
-    const content = document.getElementById('modalContent');
-    content.innerHTML = `<h2>${data.title}</h2><p style="margin:20px 0;">${data.text}</p>` + 
-      (myRole === 'student' ? `<button class="primary-btn" onclick="finishTurn()">סגור והמשך</button>` : `<p>השחקן קורא את המידע...</p>`);
-    document.getElementById('mainModal').classList.add('active');
-  }
-
-  function finishTurn() {
-    db.ref('players').once('value', s => {
-      const ids = Object.keys(s.val());
-      db.ref('gameState').once('value', g => {
-        const nextIdx = (g.val().currentTurnIdx + 1) % ids.length;
-        db.ref('gameState').update({ currentTurnIdx: nextIdx, modalVisible: false });
-      });
+        db.ref('players').once('value', pSnap => {
+          const count = Object.keys(pSnap.val()).length;
+          db.ref('game').once('value', gSnap => {
+            const nextIdx = (gSnap.val().currentTurn + 1) % count;
+            db.ref('game').update({ currentTurn: nextIdx });
+            document.getElementById('diceBtn').textContent = "🎲";
+          });
+        });
+      }, 2000);
     });
   }
 
@@ -223,7 +287,6 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
-  function closeModal() { document.getElementById('mainModal').classList.remove('active'); }
 </script>
 </body>
 </html>
