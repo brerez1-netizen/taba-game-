@@ -16,63 +16,45 @@
     .screen { display: none; min-height: 100vh; padding: 20px; flex-direction: column; align-items: center; justify-content: center; }
     .screen.active { display: flex; }
     
-    /* לוח משחק */
     .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 1000px; margin: 0 auto; }
     .cell { aspect-ratio: 1; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); position: relative; background-size: cover; background-position: center; background-blend-mode: multiply; background-color: rgba(15, 23, 42, 0.8); }
     .cell-label { z-index: 1; padding: 5px; background: rgba(0,0,0,0.7); width: 100%; position: absolute; bottom: 0; font-size: 0.7rem; text-align: center; }
     .cell-num { position: absolute; top: 4px; right: 6px; font-size: 0.8rem; opacity: 0.8; }
     
-    /* שחקנים */
-    .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; position: absolute; z-index: 100; transition: all 0.6s ease-in-out; border: 2px solid #000; box-shadow: 0 0 10px #000; }
+    .pawn { width: 35px; height: 35px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; box-shadow: 0 0 10px #000; }
     
-    /* לובי ו-QR */
     #lobbyList { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 30px; }
-    .player-card { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; font-size: 1.2rem; animation: pop 0.3s ease; }
-    @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
+    .player-card { background: rgba(56, 189, 248, 0.2); border: 2px solid var(--stage1); padding: 10px 20px; border-radius: 15px; font-size: 1.2rem; }
     
-    #qrContainer { background: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align: center; color: black; }
+    #qrContainer { background: white; padding: 15px; border-radius: 15px; text-align: center; color: black; margin-bottom: 20px; }
+    .primary-btn { background: var(--stage1); color: #020617; padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; }
     
-    /* כפתורים */
-    .primary-btn { background: var(--stage1); color: #020617; padding: 18px 40px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.3rem; cursor: pointer; transition: 0.2s; }
-    .primary-btn:hover { transform: scale(1.05); background: #7dd3fc; }
+    .dice-btn { width: 120px; height: 120px; border-radius: 30px; border: none; background: #38bdf8; font-size: 3rem; color: white; cursor: pointer; }
+    .dice-btn:disabled { background: #444; opacity: 0.5; }
     
-    /* סטטוס תור */
-    .turn-status { position: fixed; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); padding: 15px 25px; border-radius: 20px; border: 2px solid var(--stage1); display: flex; align-items: center; gap: 15px; }
-    
-    /* ספירה לאחור */
-    #countdown { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; font-size: 10rem; font-weight: bold; color: var(--stage5); }
-    
-    /* דמויות לבחירה */
-    .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
-    .icon-option { font-size: 2.5rem; padding: 10px; border: 3px solid transparent; border-radius: 15px; cursor: pointer; transition: 0.2s; }
-    .icon-option.selected { border-color: var(--stage1); background: rgba(56, 189, 248, 0.2); }
+    .icon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+    .icon-option { font-size: 2rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; }
+    .icon-option.selected { border-color: var(--stage1); background: rgba(255,255,255,0.1); }
   </style>
 </head>
 <body>
 
-<div id="countdown">3</div>
-
 <div id="roleScreen" class="screen active">
-  <h1 style="font-size: 3rem; margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
-  <p style="margin-bottom: 40px; opacity: 0.8;">קורס תחיקת הבנייה | ארז ברוכי</p>
-  <button class="primary-btn" onclick="initRole('teacher')" style="background: var(--stage5);">🖥️ אני המרצה - התחל לובי</button>
-  <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.5;">סטודנטים: נא לסרוק את הקוד שיופיע</p>
+  <h1 style="font-size: 3rem; margin-bottom: 20px;">🏙️ משחק תכנון העיר</h1>
+  <button class="primary-btn" onclick="initRole('teacher')" style="background: var(--stage5);">🖥️ מצב מרצה (הקרנה)</button>
+  <button class="primary-btn" onclick="initRole('student')" style="margin-top: 15px;">📱 מצב סטודנט (נייד)</button>
 </div>
 
 <div id="lobbyScreen" class="screen">
-  <div id="qrContainer">
-    <div id="qrcode"></div>
-    <p style="margin-top: 10px; font-weight: bold;">סרקו כדי להצטרף!</p>
-  </div>
-  <h2 id="lobbyCount">מחכים לסטודנטים... (0 הצטרפו)</h2>
+  <div id="qrContainer"><div id="qrcode"></div><p style="font-weight: bold; margin-top: 5px;">סרקו והצטרפו!</p></div>
+  <h2 id="lobbyCount" style="font-size: 2rem; margin-bottom: 30px;">מחכים למשתתפים...</h2>
   <div id="lobbyList"></div>
-  <button id="startBtn" class="primary-btn" style="margin-top: 40px; display: none;" onclick="startCountdown()">🚀 הפעל משחק</button>
+  <button id="startBtn" class="primary-btn" style="margin-top: 50px; display: none;" onclick="startGame()">🚀 התחל משחק!</button>
 </div>
 
 <div id="setupScreen" class="screen">
   <h2>הצטרפות למשחק</h2>
-  <input type="text" id="playerName" placeholder="שם הקבוצה / שם סטודנט" style="width: 100%; max-width: 300px; padding: 15px; margin: 20px 0; border-radius: 10px; background: #0f172a; color: white; border: 1px solid var(--stage1);">
-  <p>בחרו דמות:</p>
+  <input type="text" id="playerName" placeholder="שם הקבוצה" style="width: 250px; padding: 15px; margin: 20px 0; border-radius: 10px; border: 1px solid var(--stage1); background: #0f172a; color: white;">
   <div class="icon-grid" id="iconGrid">
     <div class="icon-option" onclick="selectIcon(this, '📐')">📐</div>
     <div class="icon-option" onclick="selectIcon(this, '🏛️')">🏛️</div>
@@ -86,22 +68,16 @@
   <button class="primary-btn" onclick="joinGame()">הצטרפות</button>
 </div>
 
-<div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 40px;">
+<div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 20px;">
   <div class="board-grid" id="boardGrid"></div>
-  <div class="turn-status">
-    <div id="activePawn" style="font-size: 2rem;"></div>
-    <div>
-      <div style="font-size: 0.8rem; opacity: 0.7;">תור של:</div>
-      <div id="activeName" style="font-size: 1.2rem; font-weight: bold;">---</div>
-    </div>
+  <div style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 15px; border: 2px solid var(--stage1);">
+    <div id="activeName" style="font-size: 1.5rem; font-weight: bold;">ממתין...</div>
   </div>
 </div>
 
 <div id="remoteScreen" class="screen">
-  <h2 id="statusText">ממתינים לתחילת המשחק...</h2>
-  <div style="margin: 40px 0;">
-    <button id="diceBtn" class="dice-btn" style="width:120px; height:120px; border-radius:30px; border:none; background:gray; font-size:3rem;" onclick="rollDice()" disabled>🎲</button>
-  </div>
+  <h2 id="statusText">ממתינים למרצה...</h2>
+  <div style="margin: 40px 0;"><button id="diceBtn" class="dice-btn" onclick="rollDice()" disabled>🎲</button></div>
 </div>
 
 <script>
@@ -118,53 +94,29 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  let myId, myRole, selectedIcon = '📐';
 
-  let myId = null;
-  let myRole = null;
-  let selectedIcon = '📐';
-  const boardData = [];
+  // זיהוי אוטומטי של סטודנט מהקישור
+  window.onload = () => { if(window.location.search.includes('role=student')) showScreen('setupScreen'); };
 
-  for(let i=1; i<=50; i++) boardData.push({ num: i, stage: Math.ceil(i/10) });
-
-  // זיהוי אוטומטי אם זה סטודנט (לפי URL או חוסר בחירה)
-  window.onload = () => {
-    if(window.location.search.includes('role=student')) {
-      showScreen('setupScreen');
-    }
-  };
+  function initRole(r) {
+    myRole = r;
+    if(r === 'teacher') {
+      db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
+      new QRCode(document.getElementById("qrcode"), { text: window.location.href + "?role=student", width: 120, height: 120 });
+      showScreen('lobbyScreen');
+      db.ref('players').on('value', snap => {
+        const p = snap.val() || {};
+        document.getElementById('lobbyList').innerHTML = Object.values(p).map(p => `<div class="player-card">${p.icon} ${p.name}</div>`).join('');
+        document.getElementById('lobbyCount').innerText = `שחקנים מחוברים: ${Object.keys(p).length}`;
+        document.getElementById('startBtn').style.display = Object.keys(p).length > 0 ? 'block' : 'none';
+      });
+    } else showScreen('setupScreen');
+  }
 
   function selectIcon(el, icon) {
-    document.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedIcon = icon;
-  }
-
-  function initRole(role) {
-    myRole = role;
-    if(role === 'teacher') {
-      db.ref('game').set({ state: 'lobby', currentTurn: 0 });
-      db.ref('players').remove();
-      new QRCode(document.getElementById("qrcode"), { 
-        text: window.location.href.split('?')[0] + "?role=student", 
-        width: 150, height: 150 
-      });
-      showScreen('lobbyScreen');
-      listenToLobby();
-    }
-  }
-
-  function listenToLobby() {
-    db.ref('players').on('value', snap => {
-      const players = snap.val() || {};
-      const list = document.getElementById('lobbyList');
-      const count = Object.keys(players).length;
-      list.innerHTML = '';
-      Object.values(players).forEach(p => {
-        list.innerHTML += `<div class="player-card">${p.icon} ${p.name}</div>`;
-      });
-      document.getElementById('lobbyCount').textContent = `שחקנים מחוברים: ${count}`;
-      document.getElementById('startBtn').style.display = count > 0 ? 'block' : 'none';
-    });
+    document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected'); selectedIcon = icon;
   }
 
   function joinGame() {
@@ -173,64 +125,42 @@
     myId = pRef.key;
     pRef.set({ name, icon: selectedIcon, pos: 0, id: myId });
     showScreen('remoteScreen');
-    listenToGameStatus();
-  }
-
-  function startCountdown() {
-    let sec = 3;
-    const el = document.getElementById('countdown');
-    el.style.display = 'flex';
-    const timer = setInterval(() => {
-      sec--;
-      el.textContent = sec;
-      if(sec <= 0) {
-        clearInterval(timer);
-        el.style.display = 'none';
-        db.ref('game').update({ state: 'playing' });
-      }
-    }, 1000);
-  }
-
-  function listenToGameStatus() {
     db.ref('game').on('value', snap => {
-      const game = snap.val();
-      if(game.state === 'playing') {
-        if(myRole === 'teacher') {
-          showScreen('gameScreen');
-          renderBoard();
-          listenToPlayers();
-        }
-        updateTurnUI(game.currentTurn);
+      const g = snap.val();
+      if(g.state === 'playing') {
+        db.ref('players').once('value', ps => {
+          const ids = Object.keys(ps.val());
+          const myTurn = ids[g.turn] === myId;
+          document.getElementById('diceBtn').disabled = !myTurn;
+          document.getElementById('statusText').innerText = myTurn ? "תורכם! הטילו קובייה" : "ממתינים לתור...";
+        });
       }
     });
   }
+
+  function startGame() { db.ref('game').update({ state: 'playing' }); showScreen('gameScreen'); renderBoard(); listenPlayers(); }
 
   function renderBoard() {
-    const grid = document.getElementById('boardGrid');
-    grid.innerHTML = '';
-    boardData.forEach(cell => {
-      const div = document.createElement('div');
-      const row = Math.floor((cell.num-1) / 5);
-      const isRev = row % 2 !== 0;
-      const displayIdx = isRev ? (row * 5) + (5 - ((cell.num-1) % 5)) : cell.num;
-      div.className = 'cell';
-      div.id = `cell-${displayIdx}`;
-      div.style.backgroundImage = `url('images/m${boardData[displayIdx-1].stage}-${String(displayIdx).padStart(2,'0')}.jpeg')`;
-      div.innerHTML = `<span class="cell-num">${displayIdx}</span>`;
-      grid.appendChild(div);
-    });
+    const grid = document.getElementById('boardGrid'); grid.innerHTML = '';
+    for(let i=1; i<=50; i++) {
+      const row = Math.floor((i-1)/5);
+      const idx = (row % 2 === 0) ? i : (row*5) + (5 - ((i-1)%5));
+      const cell = document.createElement('div');
+      cell.className = 'cell'; cell.id = `cell-${idx}`;
+      cell.style.backgroundImage = `url('images/m${Math.ceil(idx/10)}-${String(idx).padStart(2,'0')}.jpeg')`;
+      cell.innerHTML = `<span class="cell-num">${idx}</span>`;
+      grid.appendChild(cell);
+    }
   }
 
-  function listenToPlayers() {
+  function listenPlayers() {
     db.ref('players').on('value', snap => {
-      const players = snap.val();
+      const ps = snap.val() || {};
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      if(!players) return;
-      Object.keys(players).forEach((id, i) => {
-        const p = players[id];
+      Object.keys(ps).forEach((id, i) => {
+        const p = ps[id];
         const pawn = document.createElement('div');
-        pawn.className = 'pawn';
-        pawn.textContent = p.icon;
+        pawn.className = 'pawn'; pawn.innerText = p.icon;
         document.body.appendChild(pawn);
         const cell = document.getElementById(`cell-${p.pos + 1}`);
         if(cell) {
@@ -239,54 +169,31 @@
           pawn.style.left = `${r.left + (i*4)}px`;
         }
       });
-    });
-  }
-
-  function updateTurnUI(idx) {
-    db.ref('players').once('value', snap => {
-      const players = snap.val();
-      if(!players) return;
-      const ids = Object.keys(players);
-      const activePlayer = players[ids[idx]];
-      
-      if(myRole === 'teacher') {
-        document.getElementById('activePawn').textContent = activePlayer.icon;
-        document.getElementById('activeName').textContent = activePlayer.name;
-      }
-      
-      const isMyTurn = ids[idx] === myId;
-      const btn = document.getElementById('diceBtn');
-      if(btn) {
-        btn.disabled = !isMyTurn;
-        btn.style.background = isMyTurn ? 'linear-gradient(135deg, #0ea5e9, #2563eb)' : 'gray';
-        document.getElementById('statusText').textContent = isMyTurn ? "תורכם! הטילו קובייה" : `תור של: ${activePlayer.name}`;
-      }
+      db.ref('game').once('value', g => {
+        const ids = Object.keys(ps);
+        if(ids[g.val().turn]) document.getElementById('activeName').innerText = `תור של: ${ps[ids[g.val().turn]].name}`;
+      });
     });
   }
 
   function rollDice() {
     const steps = Math.floor(Math.random() * 6) + 1;
-    document.getElementById('diceBtn').textContent = steps;
+    document.getElementById('diceBtn').innerText = steps;
     db.ref(`players/${myId}`).once('value', s => {
-      let newPos = Math.min(49, s.val().pos + steps);
-      db.ref(`players/${myId}`).update({ pos: newPos });
+      db.ref(`players/${myId}`).update({ pos: Math.min(49, s.val().pos + steps) });
       setTimeout(() => {
-        db.ref('players').once('value', pSnap => {
-          const count = Object.keys(pSnap.val()).length;
-          db.ref('game').once('value', gSnap => {
-            const nextIdx = (gSnap.val().currentTurn + 1) % count;
-            db.ref('game').update({ currentTurn: nextIdx });
-            document.getElementById('diceBtn').textContent = "🎲";
+        db.ref('players').once('value', ps => {
+          db.ref('game').once('value', gs => {
+            const next = (gs.val().turn + 1) % Object.keys(ps.val()).length;
+            db.ref('game').update({ turn: next });
+            document.getElementById('diceBtn').innerText = "🎲";
           });
         });
       }, 2000);
     });
   }
 
-  function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  }
+  function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 </script>
 </body>
 </html>
