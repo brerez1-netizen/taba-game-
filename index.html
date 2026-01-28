@@ -18,22 +18,19 @@
     .milestone { border: 4px solid var(--gold); transform: scale(1.03); z-index: 5; box-shadow: 0 0 15px var(--gold); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
     .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
-    .active-p { border-right-color: var(--gold); background: #2d3748; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
-    .dice-box { font-size: 5rem; margin: 15px 0; text-shadow: 0 0 15px var(--blue); text-align: center; }
-    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
-    
-    /* מסך לובי כהה */
+    .active-p { border-right-color: var(--gold); background: #2d3748; }
+    .dice-box { font-size: 5rem; text-align: center; margin: 15px 0; }
+    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; }
     #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay">
-  <h1 style="font-size: 3.5rem; color: var(--blue); margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
-  <p style="font-size: 1.2rem; opacity: 0.7;">ארז ברוכי | קורס תחיקת הבנייה</p>
+  <h1 style="color: var(--blue); font-size: 3rem;">🏙️ משחק תכנון העיר</h1>
   <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
   <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק חדש</button>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק</button>
 </div>
 
 <div id="gameScreen" class="main-layout" style="visibility: hidden;">
@@ -47,25 +44,14 @@
 </div>
 
 <script>
-  const config = { 
-    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", 
-    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", 
-    projectId: "erez-taba-game" 
-  };
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
   const milestones = [1, 15, 21, 30, 42, 50];
 
-  // --- פונקציית האיפוס האוטומטית ---
-  function resetGameOnLoad() {
-    console.log("מאתחל משחק מחדש...");
-    db.ref('players').remove(); // מוחק את כל השחקנים הישנים
-    db.ref('game').set({ 
-      state: 'lobby', 
-      turn: 0, 
-      lastRoll: 0,
-      modal: false 
-    });
+  // איפוס מוחלט של ה-Database בכל פעם שדף המרצה נפתח
+  function clearAndInit() {
+    db.ref('/').set({ game: { state: 'lobby', turn: 0, lastRoll: 0 }, players: {} });
   }
 
   function initBoard() {
@@ -92,8 +78,7 @@
     db.ref('game').update({ state: 'playing' });
     document.getElementById('lobbyOverlay').style.display = 'none';
     document.getElementById('gameScreen').style.visibility = 'visible';
-    initBoard();
-    listenPlayers();
+    initBoard(); listenPlayers();
   }
 
   function listenPlayers() {
@@ -127,17 +112,15 @@
     });
     db.ref('game').on('value', s => {
       const g = s.val();
-      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1] || g.lastRoll;
+      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1];
     });
   }
 
-  // הפעלה ראשונית
-  resetGameOnLoad();
-  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 150, height: 150 });
-  
+  clearAndInit();
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
   db.ref('players').on('value', s => {
-    const p = s.val() || {}; const ids = Object.keys(p);
-    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${p[id].color}; color:black; padding:10px 25px; border-radius:30px; font-weight:bold; font-size:1.4rem;">${p[id].avatar} ${p[id].name}</div>`).join('');
+    const p = s.val() || {};
+    document.getElementById('playersLobby').innerHTML = Object.keys(p).map(id => `<div style="background:${p[id].color}; color:black; padding:10px 20px; border-radius:30px; font-weight:bold;">${p[id].avatar} ${p[id].name}</div>`).join('');
   });
 </script>
 </body>
