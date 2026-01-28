@@ -21,25 +21,52 @@
     .active-p { border-right-color: var(--gold); background: #2d3748; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
     .dice-box { font-size: 5rem; margin: 15px 0; text-shadow: 0 0 15px var(--blue); text-align: center; }
     .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
+    
+    /* מסך לובי כהה */
+    #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   </style>
 </head>
 <body>
-<div id="gameScreen" class="main-layout">
+
+<div id="lobbyOverlay">
+  <h1 style="font-size: 3.5rem; color: var(--blue); margin-bottom: 10px;">🏙️ משחק תכנון העיר</h1>
+  <p style="font-size: 1.2rem; opacity: 0.7;">ארז ברוכי | קורס תחיקת הבנייה</p>
+  <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
+  <div id="playersLobby" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;"></div>
+  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק חדש</button>
+</div>
+
+<div id="gameScreen" class="main-layout" style="visibility: hidden;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
     <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב הקבוצות</h2>
     <div class="dice-box" id="mainDice">🎲</div>
     <div id="turnText" style="font-size:1.5rem; text-align:center; margin-bottom:20px; font-weight:bold; color:var(--gold);">-</div>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <div id="qrcode" style="background:white; padding:10px; border-radius:10px; align-self:center; margin-top:10px;"></div>
   </div>
 </div>
 
 <script>
-  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
+  const config = { 
+    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", 
+    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", 
+    projectId: "erez-taba-game" 
+  };
   firebase.initializeApp(config);
   const db = firebase.database();
   const milestones = [1, 15, 21, 30, 42, 50];
+
+  // --- פונקציית האיפוס האוטומטית ---
+  function resetGameOnLoad() {
+    console.log("מאתחל משחק מחדש...");
+    db.ref('players').remove(); // מוחק את כל השחקנים הישנים
+    db.ref('game').set({ 
+      state: 'lobby', 
+      turn: 0, 
+      lastRoll: 0,
+      modal: false 
+    });
+  }
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
@@ -49,20 +76,24 @@
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       for(let c=1; c<=10; c++) {
         const num = (r * 10) + c;
-        const stage = Math.ceil(num / 10); // מזהה את התיקייה m1-m5
-        const fileName = String(num).padStart(2, '0'); // הופך את 1 ל-01 וכו'
-        
+        const stage = Math.ceil(num / 10);
         const cell = document.createElement('div');
         cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
         cell.id = `cell-${num}`;
-        
-        // נתיב הקובץ המעודכן: images/mX-YY.jpeg
-        cell.style.backgroundImage = `url('images/m${stage}-${fileName}.jpeg')`; 
+        cell.style.backgroundImage = `url('images/m${stage}-${String(num).padStart(2,'0')}.jpeg')`; 
         cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
     }
+  }
+
+  function startGame() {
+    db.ref('game').update({ state: 'playing' });
+    document.getElementById('lobbyOverlay').style.display = 'none';
+    document.getElementById('gameScreen').style.visibility = 'visible';
+    initBoard();
+    listenPlayers();
   }
 
   function listenPlayers() {
@@ -100,9 +131,14 @@
     });
   }
 
-  initBoard();
-  listenPlayers();
-  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 120, height: 120 });
+  // הפעלה ראשונית
+  resetGameOnLoad();
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 150, height: 150 });
+  
+  db.ref('players').on('value', s => {
+    const p = s.val() || {}; const ids = Object.keys(p);
+    document.getElementById('playersLobby').innerHTML = ids.map(id => `<div style="background:${p[id].color}; color:black; padding:10px 25px; border-radius:30px; font-weight:bold; font-size:1.4rem;">${p[id].avatar} ${p[id].name}</div>`).join('');
+  });
 </script>
 </body>
 </html>
