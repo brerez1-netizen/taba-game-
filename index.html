@@ -89,6 +89,7 @@
 </div>
 
 <script>
+  // קונפיגורציה מעודכנת עם הכתובת המדויקת של ארז
   const firebaseConfig = {
     apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
     authDomain: "erez-taba-game.firebaseapp.com",
@@ -109,6 +110,7 @@
   function initRole(r) {
     myRole = r;
     if(r === 'teacher') {
+      // איפוס מוחלט של ה-DB כדי למנוע זליגת נתונים ממשחקים קודמים
       db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
       new QRCode(document.getElementById("qrcode"), { text: window.location.href + "?role=student", width: 140, height: 140 });
       showScreen('lobbyScreen');
@@ -133,6 +135,8 @@
     myId = pRef.key;
     pRef.set({ name, icon: selectedIcon, pos: 0, id: myId });
     showScreen('remoteScreen');
+    document.getElementById('statusText').innerText = "נרשמת בהצלחה! המתן למרצה...";
+    
     db.ref('game').on('value', snap => {
       const g = snap.val();
       if(g.state === 'playing') {
