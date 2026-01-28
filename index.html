@@ -9,47 +9,34 @@
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; }
     html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
-    
-    /* פריסה: לוח משמאל, סרגל מימין */
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
-    
     .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
-
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .milestone { border: 4px solid var(--gold); transform: scale(1.03); z-index: 5; box-shadow: 0 0 15px var(--gold); flex: 1.3; }
+    .milestone { border: 4px solid var(--gold); transform: scale(1.03); z-index: 5; box-shadow: 0 0 15px var(--gold); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-
     .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
     .active-p { border-right-color: var(--gold); background: #2d3748; box-shadow: 0 0 10px rgba(250, 204, 21, 0.4); }
-    
     .dice-box { font-size: 5rem; margin: 15px 0; text-shadow: 0 0 15px var(--blue); text-align: center; }
     .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
   </style>
 </head>
 <body>
-
 <div id="gameScreen" class="main-layout">
   <div class="board-section" id="boardContainer"></div>
-
   <div class="sidebar">
     <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב הקבוצות</h2>
     <div class="dice-box" id="mainDice">🎲</div>
     <div id="turnText" style="font-size:1.5rem; text-align:center; margin-bottom:20px; font-weight:bold; color:var(--gold);">-</div>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <div id="qrcode" style="background:white; padding:10px; border-radius:10px; margin-top:10px; align-self:center;"></div>
+    <div id="qrcode" style="background:white; padding:10px; border-radius:10px; align-self:center; margin-top:10px;"></div>
   </div>
 </div>
 
 <script>
-  const config = {
-    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
-    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/",
-    projectId: "erez-taba-game"
-  };
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
   const milestones = [1, 15, 21, 30, 42, 50];
@@ -62,13 +49,15 @@
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       for(let c=1; c<=10; c++) {
         const num = (r * 10) + c;
-        const stageFolder = Math.ceil(num / 10); // מזהה את התיקייה m1-m5
+        const stage = Math.ceil(num / 10); // מזהה את התיקייה m1-m5
+        const fileName = String(num).padStart(2, '0'); // הופך את 1 ל-01 וכו'
+        
         const cell = document.createElement('div');
         cell.className = 'cell' + (milestones.includes(num) ? ' milestone' : '');
         cell.id = `cell-${num}`;
         
-        // הנתיב המדויק לתמונות שלך
-        cell.style.backgroundImage = `url('images/m${stageFolder}-${String(num).padStart(2,'0')}.jpeg')`;
+        // נתיב הקובץ המעודכן: images/mX-YY.jpeg
+        cell.style.backgroundImage = `url('images/m${stage}-${fileName}.jpeg')`; 
         cell.innerHTML = `<div class="cell-num">${num}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -81,12 +70,10 @@
       const ps = s.val() || {};
       const ids = Object.keys(ps);
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      
       db.ref('game').once('value', gs => {
         const turnIdx = gs.val().turn;
         document.getElementById('playersStatusList').innerHTML = ids.map((id, idx) => {
-          const p = ps[id];
-          const isActive = idx === turnIdx;
+          const p = ps[id]; const isActive = idx === turnIdx;
           const pawn = document.createElement('div');
           pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
           document.body.appendChild(pawn);
@@ -95,8 +82,7 @@
             const r = cell.getBoundingClientRect();
             pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
           }
-          return `
-            <div class="player-entry ${isActive ? 'active-p' : ''}">
+          return `<div class="player-entry ${isActive ? 'active-p' : ''}">
               <div style="font-size:2rem;">${p.avatar}</div>
               <div style="flex:1; margin-right:12px;">
                 <div style="font-weight:bold;">${p.name}</div>
@@ -108,13 +94,9 @@
         if(ids[turnIdx]) document.getElementById('turnText').innerText = "תור: " + ps[ids[turnIdx]].name;
       });
     });
-
     db.ref('game').on('value', s => {
       const g = s.val();
-      if(g.lastRoll > 0) {
-        const diceFaces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-        document.getElementById('mainDice').innerText = diceFaces[g.lastRoll-1] || g.lastRoll;
-      }
+      if(g.lastRoll > 0) document.getElementById('mainDice').innerText = ["⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll-1] || g.lastRoll;
     });
   }
 
