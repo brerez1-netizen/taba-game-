@@ -3,31 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>📱 שחקן - מסלול התב"ע</title>
+  <title>📱 שחקן - מסלול התב\"ע</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    body { background: var(--bg); color: white; font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 0; padding: 20px; transition: background 0.5s ease; overflow-x: hidden; }
-    
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; }
+    body { background: var(--bg); color: white; font-family: system-ui, sans-serif; text-align: center; margin: 0; padding: 20px; transition: background 0.5s ease; }
     .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--blue); background: #0f172a; color: white; font-size: 1.1rem; box-sizing: border-box; }
-    
-    .btn { background: var(--blue); color: #020617; border: none; padding: 18px; border-radius: 15px; font-size: 1.3rem; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 #0284c7; }
-    .btn:active { transform: translateY(3px); box-shadow: none; }
-
-    /* בחירת אווטאר */
+    .btn { background: var(--blue); color: #020617; border: none; padding: 18px; border-radius: 15px; font-size: 1.3rem; font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 4px 0 #0284c7; }
     .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
     .avatar-opt { font-size: 1.8rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: #0f172a; }
     .avatar-opt.selected { border-color: var(--gold); background: var(--card); }
-
-    /* מערך תשובות */
     .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-    .opt-btn { background: rgba(255,255,255,0.1); color: white; border: 2px solid var(--blue); padding: 25px; border-radius: 15px; font-size: 1.8rem; font-weight: bold; transition: 0.2s; }
-    .opt-btn.active-choice { background: var(--blue); color: black; border-color: white; transform: scale(0.95); }
-
-    #status-msg { font-size: 1.3rem; margin-bottom: 15px; min-height: 1.5em; font-weight: bold; }
-    .turn-glow { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+    .opt-btn { background: rgba(255,255,255,0.1); color: white; border: 2px solid var(--blue); padding: 25px; border-radius: 15px; font-size: 1.8rem; font-weight: bold; }
   </style>
 </head>
 <body id="playerBody">
@@ -36,7 +25,91 @@
   <h1 style="color: var(--blue);">הגדרת קבוצה</h1>
   <div class="card">
     <input type="text" id="playerName" placeholder="שם הקבוצה">
-    
-    <p>בחר דמות (אווטאר):</p>
+    <p>בחר דמות:</p>
     <div class="avatar-grid">
-      <div class="avatar-opt" onclick="selAv(this
+      <div class="avatar-opt" onclick="selAv(this, '🏗️')">🏗️</div>
+      <div class="avatar-opt" onclick="selAv(this, '🏠')">🏠</div>
+      <div class="avatar-opt" onclick="selAv(this, '📐')">📐</div>
+      <div class="avatar-opt" onclick="selAv(this, '🚜')">🚜</div>
+      <div class="avatar-opt" onclick="selAv(this, '🏙️')">🏙️</div>
+      <div class="avatar-opt" onclick="selAv(this, '🌳')">🌳</div>
+      <div class="avatar-opt" onclick="selAv(this, '📜')">📜</div>
+      <div class="avatar-opt" onclick="selAv(this, '🏢')">🏢</div>
+    </div>
+    <input type="color" id="playerColor" value="#38bdf8" style="height: 50px;">
+    <button class="btn" style="margin-top:20px;" onclick="joinGame()">🚀 הצטרף למשחק</button>
+  </div>
+</div>
+
+<div id="gameView" style="display: none;">
+  <div id="status-msg" style="color: var(--gold); margin-bottom: 15px; font-weight: bold;"></div>
+  <div class="card">
+    <div id="avatarBox" style="font-size: 4.5rem; margin-bottom: 10px;"></div>
+    <h2 id="nameBox" style="margin: 0;"></h2>
+    <div id="posBox" style="color: var(--blue);"></div>
+  </div>
+  <div id="quizSection" style="display: none;">
+    <h3 style="color: var(--gold);">בחר תשובה בטלפון:</h3>
+    <div class="quiz-grid">
+      <button class="opt-btn" onclick="sendAns(0)">א</button>
+      <button class="opt-btn" onclick="sendAns(1)">ב</button>
+      <button class="opt-btn" onclick="sendAns(2)">ג</button>
+      <button class="opt-btn" onclick="sendAns(3)">ד</button>
+    </div>
+  </div>
+  <button id="rollBtn" class="btn" style="display:none; margin-top:20px;" onclick="rollDice()">🎲 הטל קובייה</button>
+</div>
+
+<script>
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
+  firebase.initializeApp(config);
+  const db = firebase.database();
+
+  let myId = localStorage.getItem('erez_game_id') || "p_" + Date.now();
+  let selectedAvatar = "🏗️";
+
+  function selAv(el, av) {
+    document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedAvatar = av;
+  }
+
+  function joinGame() {
+    const name = document.getElementById('playerName').value;
+    const color = document.getElementById('playerColor').value;
+    if (!name) return alert("נא להזין שם קבוצה");
+    db.ref('players/' + myId).set({ name, avatar: selectedAvatar, color, pos: 0, lastActive: Date.now() });
+    localStorage.setItem('erez_game_id', myId);
+    showGame();
+  }
+
+  function showGame() {
+    document.getElementById('setupView').style.display = 'none';
+    document.getElementById('gameView').style.display = 'block';
+    db.ref('game').on('value', snap => {
+      const g = snap.val() || {};
+      db.ref('players').once('value', pSnap => {
+        const ps = pSnap.val() || {};
+        const ids = Object.keys(ps);
+        const isMyTurn = ids[g.turn] === myId;
+        document.getElementById('status-msg').innerText = isMyTurn ? "זה התור שלך! 🌟" : "המתן להחלטת הוועדה...";
+        document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell && g.state !== 'moving') ? 'block' : 'none';
+        document.getElementById('quizSection').style.display = (isMyTurn && g.activeCell) ? 'block' : 'none';
+        const me = ps[myId];
+        if(me) {
+          document.getElementById('avatarBox').innerText = me.avatar;
+          document.getElementById('nameBox').innerText = me.name;
+          document.getElementById('posBox').innerText = "משבצת " + (me.pos + 1);
+          document.getElementById('playerBody').style.background = `linear-gradient(180deg, ${me.color}22 0%, #020617 100%)`;
+        }
+      });
+    });
+  }
+
+  function rollDice() { db.ref('game').update({ lastRoll: Math.floor(Math.random()*6)+1, state: 'moving', selection: null }); }
+  function sendAns(idx) { db.ref('game').update({ selection: idx }); }
+
+  if (localStorage.getItem('erez_game_id')) showGame();
+</script>
+</body>
+</html>
