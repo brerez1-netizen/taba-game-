@@ -18,11 +18,10 @@
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); cursor: pointer; transition: transform 0.2s; }
     .cell:hover { transform: scale(1.03); z-index: 10; border-color: var(--blue); }
     
-    /* עיצוב לפי סוג משבצת */
-    .type-knowledge { border-left: 6px solid var(--blue); }
-    .type-quiz { border-left: 6px solid var(--green); }
-    .type-wheel { border-left: 6px solid var(--gold); }
-    .type-surprise { border-left: 6px solid var(--red); }
+    .type-knowledge { border-left: 5px solid var(--blue); }
+    .type-quiz { border-left: 5px solid var(--green); }
+    .type-wheel { border-left: 5px solid var(--gold); }
+    .type-surprise { border-left: 5px solid var(--red); }
     
     .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
@@ -47,10 +46,7 @@
 </div>
 
 <div id="infoModal" class="modal">
-  <div class="modal-content">
-    <button class="close-btn" onclick="closeModal()">חזור X</button>
-    <div id="modalBody"></div>
-  </div>
+  <div class="modal-content"><button class="close-btn" onclick="closeModal()">חזור X</button><div id="modalBody"></div></div>
 </div>
 
 <script>
@@ -58,51 +54,26 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // הגדרת שלבים לפי הקובץ החדש
+  // שחזור נקודות ההתחלה המושלמות לתמונות
   const stages = [
-    { id: 1, start: 1, name: "יוזמה והיתכנות" },
-    { id: 2, start: 6, name: "הכנה והגשה" },
-    { id: 3, start: 16, name: "בדיקות ותיאומים" },
-    { id: 4, start: 23, name: "הפקדה והתנגדויות" },
-    { id: 5, start: 34, name: "אישור ותוקף" }
+    { id: 1, start: 1 },
+    { id: 2, start: 8 },
+    { id: 3, start: 16 },
+    { id: 4, start: 25 }, 
+    { id: 5, start: 37 }
   ];
 
-  // מאגר הנתונים המלא מהקובץ שלך
   const gameData = {
     1: { title: "יוזמה ראשונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד/זכויות/בינוי.", more: "יש לבדוק תכניות תקפות, מדיניות, תשתיות וסיכונים מוקדמים.", bonus: "שאלת בונוס משלב 1" },
-    2: { title: "בדיקת תכניות", type: "quiz", info: "נושא: מי רשאי ליזום, סוגי תכניות, סמכויות." },
+    2: { title: "בדיקת תכניות בתוקף", type: "quiz", info: "מי רשאי ליזום, סוגי תכניות, סמכויות." },
     3: { title: "ייעוץ ראשוני", type: "knowledge", info: "פגישה עם אדריכל/מתכנן להגדרת מטרות.", more: "ניסוח מטרות מדידות ולא שיווקיות." },
-    4: { title: "מיפוי בעלים", type: "regular", info: "זיהוי בעלי קרקע, שכנים וגופים משפיעים." },
+    4: { title: "מיפוי בעלי עניין", type: "regular", info: "זיהוי בעלי קרקע, שכנים וגופים משפיעים." },
     5: { title: "בדיקת היתכנות", type: "regular", info: "בדיקה ראשונית של כדאיות תכנונית וכלכלית." },
-    6: { title: "איסוף מסמכים", type: "quiz", info: "נסחים, מדידות, מדיניות." },
-    7: { title: "צוות יועצים", type: "knowledge", info: "הכנה מוקדמת חוסכת התנגדויות ותיקונים." },
-    8: { title: "תשריט ותקנון", type: "quiz", info: "מרכיבי מסמכי תכנית." },
-    9: { title: "תיאום מקדים", type: "regular", info: "תיאום עם מהנדס העיר/רשות מקומית." },
-    10: { title: "הגשה ממוחשבת", type: "knowledge", info: "הגשה מלאה ומסודרת מקצרת לוחות זמנים." },
-    11: { title: "בדיקת שלמות", type: "quiz", info: "בדיקות טכניות לפני קליטה." },
-    12: { title: "מספר תכנית", type: "regular", info: "פתיחת תיק רשמי." },
-    13: { title: "ניסוח תקנון", type: "quiz", info: "הוראות תכנית." },
-    14: { title: "הגשה לוועדה", type: "knowledge", info: "התאמת סמכות (מקומית/מחוזית)." },
-    15: { title: "בדיקה מקדמית", type: "wheel", info: "תוצאות: דחייה / תיקונים / קידום." },
+    8: { title: "צוות יועצים", type: "knowledge", info: "הכנה מוקדמת חוסכת התנגדויות ותיקונים." },
     16: { title: "דרישות השלמה", type: "regular" },
-    17: { title: "תיאום תשתיות", type: "quiz" },
-    18: { title: "סבב תיקונים", type: "knowledge", info: "ניהול הערות ועקביות מסמכים." },
-    21: { title: "תנאים להפקדה", type: "knowledge" },
-    22: { title: "דיון בוועדה", type: "wheel" },
-    24: { title: "החלטת הפקדה", type: "wheel" },
-    25: { title: "פרסום עיתונות", type: "quiz" },
+    25: { title: "פרסום בעיתונות", type: "quiz", info: "פרסום ההפקדה ב-3 עיתונים שונים." },
     26: { title: "קבלת התנגדויות", type: "knowledge", info: "הפקדה ≠ אישור. זה שלב קריטי." },
-    30: { title: "החלטה", type: "wheel" },
-    33: { title: "אישור מותנה", type: "wheel" },
-    35: { title: "פרסום תוקף", type: "quiz" },
-    36: { title: "ערר/ערעור", type: "wheel" },
-    37: { title: "קליטת תכנית", type: "knowledge" },
-    39: { title: "סטייה מהתכנית", type: "wheel" },
-    42: { title: "הפקדה מחדש", type: "wheel" },
-    44: { title: "פרסום למתן תוקף", type: "knowledge" },
-    46: { title: "קלף הפתעה", type: "surprise" },
-    48: { title: "אישור סופי", type: "knowledge" },
-    49: { title: "הפקת לקחים", type: "knowledge" },
+    37: { title: "קליטת תכנית במערכת", type: "knowledge" },
     50: { title: "סיום המשחק 🎉", type: "regular" }
   };
 
@@ -110,24 +81,14 @@
 
   function getFileNameForCell(num) {
     let s = stages.filter(st => num >= st.start).pop();
-    return `m${s.id}-${String(num - s.start + 1).padStart(2, '0')}.jpeg`;
+    const relativePos = (num - s.start) + 1;
+    return `m${s.id}-${String(relativePos).padStart(2, '0')}.jpeg`;
   }
 
   function openCellInfo(num) {
     const data = gameData[num];
     const body = document.getElementById('modalBody');
-    const icon = typeIcons[data?.type] || "📍";
-    
-    body.innerHTML = `
-      <div style="font-size:3rem;">${icon}</div>
-      <h2 style="color:var(--gold); margin-bottom:5px;">משבצת ${num}</h2>
-      <h1 style="color:var(--blue); margin-top:0;">${data?.title || "שלב בתהליך"}</h1>
-      <div style="font-size:1.4rem; text-align:right; margin:20px 0; background:rgba(255,255,255,0.05); padding:20px; border-radius:10px;">
-        ${data?.info ? `<b>תיאור:</b> ${data.info}<br><br>` : ""}
-        ${data?.more ? `<b>ידע מורחב:</b> ${data.more}<br><br>` : ""}
-        ${data?.bonus ? `<div style="border:1px solid var(--blue); padding:10px; border-radius:8px;"><b>🌟 שאלת בונוס:</b> ${data.bonus}</div>` : ""}
-      </div>
-    `;
+    body.innerHTML = `<div style="font-size:3rem;">${typeIcons[data?.type]||"📍"}</div><h2>משבצת ${num}</h2><h1 style="color:var(--blue);">${data?.title || "שלב בתהליך"}</h1><div style="font-size:1.2rem; text-align:right; background:rgba(255,255,255,0.05); padding:20px; border-radius:10px;">${data?.info ? `<b>תיאור:</b> ${data.info}<br><br>` : ""}${data?.more ? `<b>ידע מורחב:</b> ${data.more}<br><br>` : ""}${data?.bonus ? `<b>🌟 בונוס:</b> ${data.bonus}` : ""}</div>`;
     document.getElementById('infoModal').style.display = 'flex';
   }
 
@@ -142,17 +103,11 @@
       for(let c=1; c<=10; c++) {
         const num = (r * 10) + c;
         const cell = document.createElement('div');
-        const typeClass = gameData[num] ? `type-${gameData[num].type}` : '';
-        cell.className = `cell ${typeClass}`;
+        cell.className = `cell ${gameData[num] ? 'type-'+gameData[num].type : ''}`;
         cell.id = `cell-${num}`;
         cell.onclick = () => openCellInfo(num);
         cell.style.backgroundImage = `url('images/${getFileNameForCell(num)}?v=${ts}')`;
-        
-        cell.innerHTML = `
-          <div class="cell-num">${num}</div>
-          <div class="cell-icon">${typeIcons[gameData[num]?.type] || ""}</div>
-          <div class="cell-title">${gameData[num]?.title || ""}</div>
-        `;
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-icon">${typeIcons[gameData[num]?.type] || ""}</div><div class="cell-title">${gameData[num]?.title || ""}</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
@@ -164,21 +119,12 @@
       const ps = s.val() || {};
       document.querySelectorAll('.pawn').forEach(p => p.remove());
       Object.keys(ps).forEach(id => {
-        const p = ps[id];
-        const pawn = document.createElement('div');
+        const p = ps[id]; const pawn = document.createElement('div');
         pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
         document.body.appendChild(pawn);
         const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) {
-          const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
-        }
+        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px"; }
       });
-      document.getElementById('playersStatusList').innerHTML = Object.keys(ps).map(id => `
-        <div style="background:rgba(255,255,255,0.05); margin-bottom:10px; padding:10px; border-radius:8px; border-right:4px solid ${ps[id].color}">
-          <b>${ps[id].avatar} ${ps[id].name}</b><br><small>משבצת ${ps[id].pos+1}</small>
-        </div>
-      `).join('');
     });
   }
 
