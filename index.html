@@ -2,10 +2,12 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - המרצה: ארז ברוכי</title>
+  <title>🏙️ מסלול התב"ע - מרצה</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="js/gameData.js"></script> 
   <style>
+    /* ... (כל ה-CSS שראינו קודם, נשאר אותו דבר) ... */
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
     html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
@@ -13,18 +15,17 @@
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; }
     .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; min-height: 25px; display: flex; align-items: center; justify-content: center; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .overlay { position: fixed; inset: 0; z-index: 4000; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); }
-    .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 500px; }
+    .overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); background-size: cover; }
+    .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
     .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; }
-    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s ease; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; }
     .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
     .btn-green { background: var(--green); color: black; }
     .btn-red { background: var(--red); color: white; margin-top: auto; }
-    .qr-static { background: white; padding: 10px; border-radius: 15px; border: 4px solid var(--blue); margin: 20px auto; display: block; }
   </style>
 </head>
 <body>
@@ -32,43 +33,33 @@
 <div id="lobbyOverlay" class="overlay">
   <div class="overlay-box">
     <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
-    <img src="images/qr.png" class="qr-static" width="180" height="180" alt="סרוק להצטרפות">
-    <div id="lobbyPlayerList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin-bottom:20px; color: var(--gold); min-height: 50px;">ממתין לקבוצות...</div>
+    <img src="images/qr.png" width="180" height="180" style="border: 4px solid white; border-radius: 15px; margin: 20px;">
+    <div id="lobbyPlayerList" style="margin-bottom: 20px; color: var(--gold); font-size: 1.2rem;">ממתין לקבוצות...</div>
     <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
-    <button class="btn" style="background:none; color:grey; font-size:0.8rem; margin-top:10px;" onclick="resetSystem()">איפוס נתונים ידני</button>
-  </div>
-</div>
-
-<div id="endOverlay" class="overlay" style="background-image: url('images/end.jpeg'); display: none;">
-  <div class="overlay-box" style="border-color: var(--gold);">
-    <h1 style="color: var(--gold); font-size: 3rem;">סיכום המהלכים</h1>
-    <div id="finalScores"></div>
-    <button class="btn" style="background: white; color: black; margin-top:20px;" onclick="resetSystem()">🔄 חזור ללובי (איפוס מלא)</button>
+    <br><br>
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס נתונים מלא</button>
   </div>
 </div>
 
 <div id="gameScreen" class="main-layout" style="display: none;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <div id="diceBox" style="font-size: 4rem; text-align: center; margin-bottom: 10px;">🎲</div>
-    <h3 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 5px;">קבוצות בשטח</h3>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <img src="images/qr.png" width="100" height="100" style="margin: 10px auto; border-radius: 8px; border: 2px solid white;">
+    <div id="diceDisplay" style="font-size: 4rem; text-align: center;">🎲</div>
+    <div id="playersStatusList" style="flex:1; overflow-y:auto; margin-top: 20px;"></div>
+    <img src="images/qr.png" width="100" height="100" style="margin: 10px auto; border: 2px solid white;">
     <button class="btn btn-red" onclick="forceEnd()">🛑 סיום כפוי</button>
   </div>
 </div>
 
 <div id="infoModal" class="modal">
-  <div class="modal-content" id="modalBody"></div>
+  <div id="modalBody" class="modal-content"></div>
 </div>
 
 <script>
+  // Firebase Config (ודא שזה תואם להגדרות שלך)
   const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
-
-  const gameData = { 1: { title: "יוזמה רעיונית", info: "הולדת רעיון תכנוני לשינוי ייעוד." }, 50: { title: "אכלוס וסיום 🎉", info: "מזל טוב! השלמתם את התהליך." } };
-  const diceIcons = ["🎲", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
@@ -80,3 +71,85 @@
         const num = (r * 10) + c;
         const cell = document.createElement('div');
         cell.className = 'cell'; cell.id = `cell-${num}`;
+        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
+        // משיכת הכותרת מ-gameData.js
+        const title = (typeof gameData !== 'undefined' && gameData[num]) ? gameData[num].title : "שלב תכנוני";
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
+
+  function listenSystem() {
+    db.ref('game').on('value', snap => {
+      const g = snap.val() || { state: 'lobby', turn: 0 };
+      document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
+      document.getElementById('gameScreen').style.display = (g.state === 'playing' || g.state === 'moving') ? 'flex' : 'none';
+      
+      if(g.state === 'playing' || g.state === 'moving') {
+        initBoard();
+        if(g.lastRoll) document.getElementById('diceDisplay').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll];
+        if(g.state === 'moving' && g.lastRoll) handleMovement(g.turn, g.lastRoll);
+      }
+
+      const modal = document.getElementById('infoModal');
+      if(g.activeCell) {
+        const data = gameData[g.activeCell] || { title: "שלב תכנוני", info: "בדיקת סטטוס..." };
+        document.getElementById('modalBody').innerHTML = `<h1>${data.title}</h1><p>${data.info || ""}</p><h3>${data.question || ""}</h3><button class="btn btn-green" onclick="closeCell()">סגור וסיים תור X</button>`;
+        modal.style.display = 'flex';
+      } else { modal.style.display = 'none'; }
+    });
+
+    db.ref('players').on('value', snap => {
+      const ps = snap.val() || {};
+      const ids = Object.keys(ps);
+      
+      // עדכון לובי
+      document.getElementById('lobbyPlayerList').innerHTML = ids.map(id => `<span style="background:${ps[id].color}; padding:5px 15px; border-radius:10px; margin:5px;">${ps[id].avatar} ${ps[id].name}</span>`).join('');
+
+      // עדכון חיילים
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      document.getElementById('playersStatusList').innerHTML = ids.map(id => {
+        const p = ps[id];
+        const pawn = document.createElement('div');
+        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        document.body.appendChild(pawn);
+        const cell = document.getElementById(`cell-${p.pos + 1}`);
+        if(cell) {
+          const r = cell.getBoundingClientRect();
+          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+        }
+        return `<div style="background:var(--card); padding:10px; border-radius:8px; border-right:5px solid ${p.color}; margin-bottom:5px;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
+      }).join('');
+    });
+  }
+
+  async function handleMovement(turnIdx, roll) {
+    const pSnap = await db.ref('players').once('value');
+    const ps = pSnap.val();
+    const ids = Object.keys(ps || {});
+    const myId = ids[turnIdx];
+    if(!myId) return;
+    const newPos = Math.min((ps[myId].pos || 0) + roll, 49);
+    await db.ref('players/' + myId).update({ pos: newPos });
+    await db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
+  }
+
+  function closeCell() {
+    db.ref('game').once('value', s => {
+      db.ref('players').once('value', ps => {
+        const ids = Object.keys(ps.val() || {});
+        db.ref('game').update({ activeCell: null, turn: (s.val().turn + 1) % ids.length, lastRoll: 0 });
+      });
+    });
+  }
+
+  function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
+  function resetSystem() { db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(() => location.reload()); }
+  function forceEnd() { db.ref('game').update({ state: 'finished' }); }
+
+  listenSystem();
+</script>
+</body>
+</html>
