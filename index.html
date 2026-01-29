@@ -8,38 +8,96 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
-    
-    /* פריסת מסך */
+    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
     .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
-
-    /* משבצות */
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
     .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 0.65rem; padding: 4px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
-    
-    .type-knowledge { border-left: 5px solid var(--blue); }
-    .type-quiz { border-left: 5px solid var(--green); }
-    .type-wheel { border-left: 5px solid var(--gold); }
-    .type-surprise { border-left: 5px solid var(--red); }
-
-    /* סרגל צד */
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    
-    /* מודאל שאלות */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; box-shadow: 0 0 50px rgba(56, 189, 248, 0.2); }
-    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-    .opt-box { padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; font-size: 1.2rem; transition: 0.3s; }
-    .opt-box.correct { background: var(--green) !important; color: black; font-weight: bold; border-color: white; }
-    .opt-box.wrong { background: var(--red) !important; color: white; border-color: white; }
-
-    /* מסכי Overlay */
     .overlay { position: fixed; inset: 0; z-index: 4000; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
     .overlay-box { background: rgba(2, 6, 23, 0.92); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
-    
-    /* חיילי משחק */
-    .pawn { width: 42px; height: 42px; border-radius: 50%; position
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
+    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
+    .opt-box { padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; font-size: 1.2rem; }
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s ease; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
+    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div id="lobbyOverlay" class="overlay" style="background-image: url('images/start.jpeg');">
+  <div class="overlay-box">
+    <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
+    <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin: 25px auto; width: 140px; display: flex; justify-content: center;"></div>
+    <div id="lobbyPlayerList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px; color: var(--gold);">ממתין לשחקנים...</div>
+    <button class="btn" style="background: var(--green); color: black;" onclick="startGame()">🚀 התחל משחק</button>
+  </div>
+</div>
+
+<div id="endOverlay" class="overlay" style="background-image: url('images/end.jpeg'); display: none;">
+  <div class="overlay-box" style="border-color: var(--gold);">
+    <h1 style="color: var(--gold); font-size: 3rem;">סיכום המהלכים</h1>
+    <div id="finalScores" style="margin: 20px 0;"></div>
+    <button class="btn" style="background: white; color: black;" onclick="resetSystem()">🔄 חזרה ללובי</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="main-layout" style="visibility: hidden;">
+  <div class="board-section" id="boardContainer"></div>
+  <div class="sidebar">
+    <h2 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 10px;">קבוצות רשומות</h2>
+    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
+    <div id="sidebarQR" style="background:white; padding:5px; border-radius:8px; align-self:center; margin-top:10px;"></div>
+    <button class="btn" style="background: var(--red); color: white; margin-top: 15px; font-size: 1rem; padding: 10px;" onclick="forceEnd()">🛑 סיום כפוי</button>
+  </div>
+</div>
+
+<div id="infoModal" class="modal">
+  <div class="modal-content" id="modalBody"></div>
+</div>
+
+<script>
+  // הגדרות Firebase
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
+  if (!firebase.apps.length) { firebase.initializeApp(config); }
+  const db = firebase.database();
+
+  // נתוני משבצות (דוגמה מצומצמת - השלם לפי הרשימה שלך)
+  const gameData = {
+    1: { title: "יוזמה רעיונית", type: "knowledge", info: "הולדת רעיון תכנוני.", more: "חובה לוודא שאין סתירה לתמ\"א.", question: "מי מאשר תמ\"א?", options: ["הממשלה", "הוועדה המחוזית", "אדריכל העיר", "מתכנן המחוז"], correct: 0 },
+    50: { title: "אכלוס וסיום 🎉", type: "knowledge", info: "מזל טוב! השלמתם את מסלול התב\"ע." }
+  };
+
+  function initBoard() {
+    const container = document.getElementById('boardContainer');
+    if(container.children.length > 0) return;
+    const ts = Date.now();
+    for(let r=0; r<5; r++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
+      for(let c=1; c<=10; c++) {
+        const num = (r * 10) + c;
+        const cell = document.createElement('div');
+        const data = gameData[num];
+        cell.className = `cell ${data ? 'type-'+data.type : ''}`;
+        cell.id = `cell-${num}`;
+        cell.style.backgroundImage = `url('images/${num}.jpeg?v=${ts}')`;
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${data?.title || "שלב תכנוני"}</div>`;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
+
+  function listenSystem() {
+    db.ref('game').on('value', snap => {
+      const g = snap.val() || { state: 'lobby' };
+      
+      // ניהול תצוגת מסכים
+      document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
+      document.getElementById('endOverlay').style.display = (g.state === 'finished') ? 'flex' : 'none';
+      document.getElementById('gameScreen').style.visibility = (g.state === 'playing') ? 'visible' : 'hidden';
