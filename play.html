@@ -2,139 +2,90 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>📱 שלט שחקן - תכנון העיר</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 שחקן - מסלול התב"ע</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
-    :root { --blue: #38bdf8; --dark: #020617; --gold: #facc15; }
-    body { font-family: system-ui, sans-serif; background: var(--dark); color: white; text-align: center; padding: 20px; }
-    .card { background: rgba(255,255,255,0.05); border: 2px solid var(--blue); border-radius: 25px; padding: 25px; margin-bottom: 20px; }
-    .avatar-preview { font-size: 5rem; width: 130px; height: 130px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; border: 4px solid var(--blue); box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); }
-    .input-label { display: block; text-align: right; margin-bottom: 8px; opacity: 0.8; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #1e293b; color: white; font-size: 1.1rem; margin-bottom: 20px; }
-    .btn { background: var(--blue); color: var(--dark); padding: 20px; border-radius: 15px; border: none; font-weight: bold; width: 100%; font-size: 1.3rem; cursor: pointer; }
-    .dice-btn { width: 140px; height: 140px; font-size: 4.5rem; border-radius: 40px; border: none; background: linear-gradient(135deg, var(--blue), #6366f1); color: white; margin: 30px 0; transition: 0.2s; }
-    .dice-btn:active { transform: scale(0.9); }
-    .dice-btn:disabled { opacity: 0.2; filter: grayscale(1); }
-    #infoModal { position: fixed; inset: 0; background: var(--dark); padding: 30px; display: none; flex-direction: column; justify-content: center; z-index: 2000; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; }
+    body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+    .btn { background: var(--blue); color: black; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; font-weight: bold; width: 100%; margin: 10px 0; cursor: pointer; }
+    .opt-btn { background: #1e293b; color: white; border: 2px solid var(--blue); }
+    .active-p { border: 4px solid var(--gold); }
+    #status-bar { background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
 
-<div id="setup" class="screen active">
-  <h1 style="color:var(--blue)">עיצוב הקבוצה</h1>
-  <div class="card">
-    <div class="avatar-preview" id="preview">👷‍♂️</div>
-    <span class="input-label">שם הקבוצה:</span>
-    <input type="text" id="pName" placeholder="למשל: אדריכלי העתיד">
-    <span class="input-label">בחרו דמות:</span>
-    <select id="role" onchange="updatePreview()">
-      <option value="👷‍♂️">אדריכל/ית</option>
-      <option value="🏗️">יזם/ית</option>
-      <option value="⚖️">עורך/ת דין</option>
-      <option value="🏛️">נציג/ת ועדה</option>
-      <option value="🏢">מהנדס/ת</option>
-    </select>
-    <span class="input-label">צבע זיהוי:</span>
-    <select id="color" onchange="updatePreview()">
-      <option value="#38bdf8">תכלת</option>
-      <option value="#facc15">זהב</option>
-      <option value="#4ade80">ירוק</option>
-      <option value="#f472b6">ורוד</option>
-      <option value="#a855f7">סגול</option>
-    </select>
-    <button class="btn" onclick="join()">הצטרפות ללובי</button>
+<div id="setup">
+  <h2>הצטרפות למשחק</h2>
+  <input type="text" id="pName" placeholder="שם הקבוצה" style="padding:10px; width:80%; border-radius:5px;"><br>
+  <select id="pAvatar" style="padding:10px; width:85%; margin:10px 0; border-radius:5px;">
+    <option value="🏗️">מנוף</option><option value="🏠">בית</option>
+    <option value="📐">סרגל</option><option value="🏙️">עיר</option>
+  </select><br>
+  <button class="btn" onclick="join()">הצטרף</button>
+</div>
+
+<div id="game" style="display:none;">
+  <div id="status-bar">
+    <div id="myTurnInfo">המתן לתורך...</div>
+  </div>
+  
+  <div id="controls">
+    <button id="diceBtn" class="btn" style="display:none;" onclick="roll()">🎲 הטל קובייה</button>
+  </div>
+
+  <div id="quiz-ui" style="display:none;">
+    <h3>בחר תשובה:</h3>
+    <button class="btn opt-btn" onclick="sendAns(0)">א</button>
+    <button class="btn opt-btn" onclick="sendAns(1)">ב</button>
+    <button class="btn opt-btn" onclick="sendAns(2)">ג</button>
+    <button class="btn opt-btn" onclick="sendAns(3)">ד</button>
   </div>
 </div>
 
-<div id="play" style="display:none;">
-  <h2 id="status">ממתינים למרצה...</h2>
-  <div class="avatar-preview" id="myDisplay" style="width:100px; height:100px; font-size:4rem;"></div>
-  <button id="diceBtn" class="dice-btn" onclick="roll()" disabled>🎲</button>
-</div>
-
-<div id="infoModal">
-  <h1 id="mTitle" style="color:var(--gold)"></h1>
-  <p id="mDesc" style="font-size:1.5rem; line-height:1.4; margin:30px 0;"></p>
-  <button class="btn" onclick="next()" style="background:var(--gold)">המשך לתור הבא</button>
-</div>
-
 <script>
-  const config = {
-    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0",
-    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/",
-    projectId: "erez-taba-game"
-  };
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
-  let myId, myData;
-
-  const tabaInfo = {
-    1: "יוזמה ותכנון רעיוני: כאן הכל מתחיל. הרעיון שלכם יוצא לדרך!",
-    7: "בדיקת תנאי סף: הוועדה בוחנת אם כל המסמכים שהגשתם תקינים.",
-    15: "החלטה על המלצה להפקדה: הוועדה המקומית ממליצה לקדם את התכנית שלכם.",
-    30: "מינוי חוקר: הוועדה ממנה איש מקצוע לשמוע את ההתנגדויות לתכנית.",
-    50: "מזל טוב! הגעתם לסוף התהליך. התכנית מאושרת וניתן לבנות!"
-  };
-
-  function updatePreview() {
-    const p = document.getElementById('preview');
-    p.innerText = document.getElementById('role').value;
-    p.style.backgroundColor = document.getElementById('color').value;
-  }
+  let myId = null;
 
   function join() {
     const name = document.getElementById('pName').value;
-    if(!name) return alert("חייבים שם לקבוצה!");
-    const pRef = db.ref('players').push();
-    myId = pRef.key;
-    myData = { name, avatar: document.getElementById('role').value, color: document.getElementById('color').value, pos: 0, id: myId };
-    pRef.set(myData);
-    
+    const avatar = document.getElementById('pAvatar').value;
+    if(!name) return;
+    myId = Date.now().toString();
+    db.ref('players/' + myId).set({ name, avatar, pos: 0, color: '#'+Math.floor(Math.random()*16777215).toString(16) });
     document.getElementById('setup').style.display = 'none';
-    document.getElementById('play').style.display = 'block';
-    document.getElementById('myDisplay').innerText = myData.avatar;
-    document.getElementById('myDisplay').style.backgroundColor = myData.color;
+    document.getElementById('game').style.display = 'block';
+    listen();
+  }
 
+  function listen() {
     db.ref('game').on('value', s => {
       const g = s.val();
-      db.ref('players').once('value', psSnap => {
-        const ps = psSnap.val() || {};
-        const ids = Object.keys(ps);
+      db.ref('players').once('value', ps => {
+        const ids = Object.keys(ps.val() || {});
         const isMyTurn = ids[g.turn] === myId;
-        document.getElementById('diceBtn').disabled = !isMyTurn || g.modal || g.state !== 'playing';
-        document.getElementById('status').innerText = isMyTurn ? "תורכם! הטילו קובייה" : `תור של: ${ps[ids[g.turn]]?.name || 'ממתין'}`;
         
-        if(g.modal && isMyTurn) {
-          document.getElementById('infoModal').style.display = 'flex';
-          document.getElementById('mTitle').innerText = "משבצת " + g.activeCell;
-          document.getElementById('mDesc').innerText = tabaInfo[g.activeCell] || "שלב נוסף בתהליך התכנון הסטטוטורי של התב\"ע. המשיכו כך!";
-        } else {
-          document.getElementById('infoModal').style.display = 'none';
-        }
+        document.getElementById('myTurnInfo').innerText = isMyTurn ? "תורך לשחק!" : "תור של: " + ps.val()[ids[g.turn]]?.name;
+        document.getElementById('diceBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
+        
+        // הצגת כפתורי קוויז רק אם מופעלת משבצת קוויז והגיע תורי
+        document.getElementById('quiz-ui').style.display = (isMyTurn && g.activeCell) ? 'block' : 'none';
       });
     });
   }
 
   function roll() {
-    const steps = Math.floor(Math.random() * 6) + 1;
-    document.getElementById('diceBtn').innerText = steps;
-    db.ref(`players/${myId}`).once('value', s => {
-      const newPos = Math.min(49, s.val().pos + steps);
-      db.ref(`players/${myId}`).update({ pos: newPos });
-      setTimeout(() => db.ref('game').update({ modal: true, activeCell: newPos + 1 }), 1500);
-    });
+    const r = Math.floor(Math.random() * 6) + 1;
+    db.ref('game').update({ lastRoll: r, state: 'moving' });
+    // כאן תבוא הלוגיקה של הזזת השחקן ב-Firebase
   }
 
-  function next() {
-    db.ref('players').once('value', ps => {
-      const count = Object.keys(ps.val()).length;
-      db.ref('game').once('value', g => {
-        db.ref('game').update({ turn: (g.val().turn + 1) % count, modal: false });
-        document.getElementById('diceBtn').innerText = "🎲";
-      });
-    });
+  function sendAns(idx) {
+    db.ref('game').update({ selection: idx });
   }
 </script>
 </body>
