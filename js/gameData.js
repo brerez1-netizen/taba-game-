@@ -1,4 +1,8 @@
+console.log("✅ קובץ הנתונים נטען בהצלחה!"); // זה יופיע בבדיקה שנריץ עכשיו
 const gameData = {
+  1: { 
+    title: "יוזמה רעיונית", 
+    ...const gameData = {
   1: { 
     title: "יוזמה רעיונית", 
     type: "knowledge", 
