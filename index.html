@@ -175,12 +175,62 @@
   function forceEnd() { db.ref('game').update({ state: 'finished' }); }
   function resetSystem() { db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }); location.reload(); }
 
-  window.onload = function() {
-    const studentUrl = window.location.href.split('index.html')[0].replace(/\/$/, "") + "/play.html";
-    new QRCode(document.getElementById("qrcode"), { text: studentUrl, width: 140, height: 140 });
-  };
+// --- הדבק מכאן (החלפה של window.onload והלאה) ---
 
+  function generateQRCodes() {
+    // בדיקה אם הספרייה נטענה
+    if (typeof QRCode === "undefined") {
+      console.log("ממתין לספריית QRCode...");
+      setTimeout(generateQRCodes, 500); // נסה שוב בעוד חצי שנייה
+      return;
+    }
+
+    try {
+      // חישוב כתובת הסטודנט בצורה חסינה
+      let studentUrl = window.location.href;
+      if (studentUrl.includes('index.html')) {
+        studentUrl = studentUrl.replace('index.html', 'play.html');
+      } else {
+        studentUrl = studentUrl.endsWith('/') ? studentUrl + 'play.html' : studentUrl + '/play.html';
+      }
+
+      // יצירת הברקוד בלובי
+      const lobbyQR = document.getElementById("qrcode");
+      lobbyQR.innerHTML = ""; // ניקוי לפני יצירה
+      new QRCode(lobbyQR, { 
+        text: studentUrl, 
+        width: 160, 
+        height: 160,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+
+      // יצירת הברקוד בסרגל הצד
+      const sideQR = document.getElementById("sidebarQR");
+      if (sideQR) {
+        sideQR.innerHTML = "";
+        new QRCode(sideQR, { 
+          text: studentUrl, 
+          width: 90, 
+          height: 90,
+          correctLevel : QRCode.CorrectLevel.H
+        });
+      }
+      
+      console.log("✅ הברקוד נוצר בהצלחה עבור: " + studentUrl);
+    } catch (e) {
+      console.error("שגיאה ביצירת הברקוד:", e);
+    }
+  }
+
+  // הפעלה מיידית של המאזין למערכת
   listenSystem();
+
+  // הפעלת מנגנון ייצור הברקוד
+  generateQRCodes();
+
+  // --- עד כאן ---
 </script>
 </body>
 </html>
