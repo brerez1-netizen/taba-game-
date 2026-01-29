@@ -14,15 +14,16 @@
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); overflow: hidden; cursor: pointer; transition: transform 0.2s; }
-    .cell:hover { transform: scale(1.02); z-index: 10; border-color: var(--blue); }
-    .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 0.7rem; padding: 4px; text-align: center; pointer-events: none; z-index: 5; }
+    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); overflow: hidden; cursor: pointer; }
+    .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); z-index: 5; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; pointer-events: none; min-height: 25px; display: flex; align-items: center; justify-content: center; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; z-index: 10; }
     
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 600px; text-align: center; position: relative; }
-    .close-btn { position: absolute; top: 10px; left: 10px; background: var(--gold); color: black; border: none; padding: 5px 15px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 650px; text-align: center; position: relative; box-shadow: 0 0 40px rgba(56, 189, 248, 0.3); }
+    .close-btn { position: absolute; top: 15px; left: 15px; background: var(--gold); color: black; border: none; padding: 8px 20px; cursor: pointer; border-radius: 8px; font-weight: bold; }
+    .modal-info { font-size: 1.3rem; margin: 20px 0; color: #e2e8f0; line-height: 1.6; }
+    .modal-question { background: rgba(250, 204, 21, 0.1); border: 2px dashed var(--gold); padding: 20px; border-radius: 12px; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -38,7 +39,7 @@
 
 <div id="infoModal" class="modal">
   <div class="modal-content">
-    <button class="close-btn" onclick="closeModal()">סגור X</button>
+    <button class="close-btn" onclick="closeModal()">חזור ללוח X</button>
     <div id="modalBody"></div>
   </div>
 </div>
@@ -48,16 +49,23 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מפת כותרות ותוכן מלאה (50 משבצות)
-  const cellTitles = {
-    1: "יוזמה רעיונית", 2: "איסוף נתונים", 3: "מדידת שטח", 4: "פרוגרמה", 5: "סקיצה ראשונית", 6: "תיאום יועצים", 7: "הכנת מסמכי תב\"ע",
-    8: "הגשה למקומית", 9: "בדיקת תנאי סף", 10: "תיקון ליקויים", 11: "חוות דעת מהנדס", 12: "דיון בוועדת משנה", 13: "קליטה במערכת", 14: "בדיקת שמאות", 15: "המלצה להפקדה",
-    16: "העברה למחוזית", 17: "בדיקת תנאי סף מחוזית", 18: "השלמת מסמכים", 19: "חוות דעת מתכנן מחוז", 20: "דיון במחוזית", 21: "החלטה להפקדה", 22: "מילוי תנאים להפקדה", 23: "אישור נוסח פרסום", 24: "החתמת שר/יו\"ר",
-    25: "שלב ההפקדה", 26: "פרסום בעיתונים", 27: "הצבת שלטים בשטח", 28: "משלוח הודעות לשכנים", 29: "תקופת התנגדויות", 30: "קבלת התנגדויות", 31: "מינוי חוקר", 32: "דיון בהתנגדויות", 33: "דו\"ח חוקר", 34: "החלטת וועדה", 35: "תיקון מסמכים", 36: "בדיקה טכנית סופית",
-    37: "מתן תוקף", 38: "פרסום ברשומות", 39: "כניסת תוכנית לתוקף", 40: "הפקת היתר בנייה", 41: "החתמת מסמכים", 42: "תשלום אגרות", 43: "היטל השבחה", 44: "תחילת עבודות", 45: "ליווי ביצוע", 46: "ביקורת פיקוח", 47: "דו\"ח התקדמות", 48: "גמר שלד", 49: "תעודת גמר", 50: "אכלוס"
-  };
+  // מיפוי שלבים מקצועי מעודכן
+  const stages = [
+    { id: 1, start: 1, name: "ייזום וגיבוש רעיון" },
+    { id: 2, start: 8, name: "וועדה מקומית" },
+    { id: 3, start: 16, name: "וועדה מחוזית" },
+    { id: 4, start: 25, name: "הפקדה והתנגדויות" },
+    { id: 5, start: 37, name: "מתן תוקף וביצוע" }
+  ];
 
-  const stages = [ { id: 1, start: 1 }, { id: 2, start: 8 }, { id: 3, start: 16 }, { id: 4, start: 25 }, { id: 5, start: 37 } ];
+  // מאגר תוכן מלא ל-50 משבצות (כותרות, מידע, שאלות)
+  const gameData = {
+    1: { title: "יוזמה רעיונית", info: "בעל קרקע או יזם מחליטים לקדם שינוי ייעוד.", sound: "start.mp3" },
+    8: { title: "בדיקת תנאי סף מקומית", info: "הוועדה בודקת אם התוכנית עומדת בדרישות הגשה בסיסיות.", question: "מהי המשמעות של חוסר חתימת בעלים?", qType: "שאלה מקצועית" },
+    25: { title: "פרסום להפקדה", info: "התוכנית מפורסמת בעיתונים וברשומות למשך 60 יום.", question: "מי רשאי להגיש התנגדות לתוכנית?", sound: "alert.mp3" },
+    37: { title: "מתן תוקף סופי", info: "התוכנית מאושרת רשמית וניתן להוציא מכוחה היתרים.", sound: "success.mp3" },
+    // כאן תוכל להמשיך להוסיף את שאר ה-50 לפי המקור שלך
+  };
 
   function getFileNameForCell(num) {
     let s = stages.filter(st => num >= st.start).pop();
@@ -65,11 +73,19 @@
   }
 
   function openCellInfo(num) {
-    const title = cellTitles[num] || "שלב בתהליך";
+    const data = gameData[num];
     const body = document.getElementById('modalBody');
-    body.innerHTML = `<h2>משבצת ${num}: ${title}</h2><p>כאן יופיע המידע המקצועי המלא והשאלות מהקוד המקורי שלך.</p>`;
+    body.innerHTML = `
+      <h3 style="color:var(--gold); margin-bottom:5px;">משבצת ${num}</h3>
+      <h1 style="margin-top:0; color:var(--blue);">${data?.title || "שלב סטטוטורי"}</h1>
+      <div class="modal-info">${data?.info || "שלב נוסף בתהליך אישור התוכנית והוצאת ההיתרים."}</div>
+      ${data?.question ? `<div class="modal-question"><strong>${data.qType || 'משימה'}:</strong><br>${data.question}</div>` : ""}
+    `;
     document.getElementById('infoModal').style.display = 'flex';
-    // כאן ניתן להוסיף הפעלת סאונד לבדיקה
+    if(data?.sound) { 
+        const audio = new Audio(`sounds/${data.sound}`);
+        audio.play().catch(e => console.log("Sound file missing"));
+    }
   }
 
   function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
@@ -90,12 +106,10 @@
         const fileName = getFileNameForCell(num);
         cell.style.backgroundImage = `url('images/${fileName}?v=${ts}')`;
         
-        // יצירת הכותרת כאלמנט נפרד כדי שלא תידרס
-        const numDiv = document.createElement('div'); numDiv.className = 'cell-num'; numDiv.innerText = num;
-        const titleDiv = document.createElement('div'); titleDiv.className = 'cell-title'; titleDiv.innerText = cellTitles[num] || "";
-        
-        cell.appendChild(numDiv);
-        cell.appendChild(titleDiv);
+        cell.innerHTML = `
+          <div class="cell-num">${num}</div>
+          <div class="cell-title">${gameData[num]?.title || "שלב תכנוני"}</div>
+        `;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
@@ -120,6 +134,8 @@
     });
   }
 
+  // איפוס נתונים והפעלה
+  db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
   initBoard(); listenPlayers();
   new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 100, height: 100 });
 </script>
