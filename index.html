@@ -15,35 +15,51 @@
     .row-reverse { flex-direction: row-reverse; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
     
-    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; cursor: pointer; }
-    .type-knowledge { border-left: 5px solid var(--blue); }
-    .type-quiz { border-left: 5px solid var(--green); }
-    .type-wheel { border-left: 5px solid var(--gold); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 0.65rem; padding: 4px; text-align: center; }
+    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; min-height: 25px; display: flex; align-items: center; justify-content: center; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; }
 
+    /* שכבות מעל (Overlays) */
+    .overlay { position: fixed; inset: 0; z-index: 4000; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
+    .overlay-box { background: rgba(2, 6, 23, 0.92); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+    
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
     .modal-content { background: var(--card); padding: 30px; border-radius: 20px; border: 3px solid var(--blue); width: 700px; text-align: center; }
-    
-    /* עיצוב אופציות התשובה */
-    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-    .opt-box { padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 10px; font-size: 1.1rem; }
-    .correct { background: var(--green) !important; border-color: white !important; }
-    .wrong { background: var(--red) !important; border-color: white !important; }
 
-    .pawn { width: 40px; height: 40px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
-    .btn-end { background: var(--red); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: auto; font-weight: bold; }
+    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-green { background: var(--green); color: black; }
+    .btn-red { background: var(--red); color: white; margin-top: auto; }
+    
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
+    .score-item { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0; display: flex; justify-content: space-between; font-size: 1.5rem; }
   </style>
 </head>
 <body>
 
-<div id="gameScreen" class="main-layout">
+<div id="lobbyOverlay" class="overlay" style="background-image: url('images/start.jpeg');">
+  <div class="overlay-box">
+    <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
+    <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin: 25px auto; width: 140px;"></div>
+    <div id="lobbyPlayersCount" style="font-size: 1.5rem; color: var(--gold); margin-bottom: 20px;">ממתין לשחקנים...</div>
+    <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
+  </div>
+</div>
+
+<div id="endOverlay" class="overlay" style="background-image: url('images/end.jpeg'); display: none;">
+  <div class="overlay-box" style="border-color: var(--gold);">
+    <h1 style="color: var(--gold); font-size: 3.5rem; margin: 0;">סיכום המהלכים</h1>
+    <p style="font-size: 1.2rem; margin-bottom: 30px;">התוצאות הסופיות של הוועדה</p>
+    <div id="finalScoreList"></div>
+    <button class="btn" style="background: white; color: black; margin-top: 30px;" onclick="resetToLobby()">🔄 חזור ללובי (איפוס מלא)</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="main-layout" style="visibility: hidden;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <h2 style="color:var(--blue);">🏙️ מסלול התב"ע</h2>
+    <h2 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 10px;">קבוצות פעילות</h2>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <div id="qrcode" style="background:white; padding:5px; border-radius:5px; align-self:center;"></div>
-    <button class="btn-end" onclick="forceEnd()">🛑 סיום משחק כפוי</button>
+    <button class="btn btn-red" onclick="forceEnd()">🛑 סיום כפוי וסיכום</button>
   </div>
 </div>
 
@@ -56,19 +72,78 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // כל 50 המשבצות - תוכן מלא ומקצועי
-  const gameData = {
-    1: { title: "יוזמה רעיונית", type: "knowledge", info: "הולדת רעיון תכנוני.", more: "חובה לוודא שאין סתירה לתמ\"א.", question: "מי מאשר תמ\"א?", options: ["הממשלה", "הוועדה המחוזית", "אדריכל העיר", "מתכנן המחוז"], correct: 0 },
-    2: { title: "בדיקת תכניות", type: "quiz", question: "האם בעל קרקע פרטי רמאי ליזום תכנית?", options: ["כן", "לא", "רק באישור שר", "רק באישור מחוז"], correct: 0 },
-    11: { title: "תנאי סף", type: "quiz", question: "כמה ימי עבודה לבדיקת תנאי סף?", options: ["7", "14", "30", "60"], correct: 1 },
-    25: { title: "פרסום בעיתונות", type: "quiz", question: "כמה עיתונים יומיים חובה לפרסם?", options: ["1", "2", "3", "4"], correct: 1 },
-    35: { title: "פרסום תוקף", type: "quiz", question: "מתי תכנית נכנסת לתוקף?", options: ["מיד", "לאחר 7 ימים", "לאחר 15 ימים", "לאחר 30 ימים"], correct: 2 },
-    50: { title: "סיום וסיכום", type: "knowledge", info: "השלמתם את התהליך!" }
-    // המשך הנתונים מוטמע באופן דומה...
-  };
+  function startGame() { db.ref('game').update({ state: 'playing' }); }
+
+  function forceEnd() { 
+    if(confirm("לסיים את המשחק ולעבור לסיכום התוצאות?")) {
+      db.ref('game').update({ state: 'finished' }); 
+    }
+  }
+
+  function resetToLobby() {
+    if(confirm("זה ימחק את כל השחקנים ויחזיר את המשחק להתחלה. בטוח?")) {
+      db.ref('/').update({ 
+        game: { state: 'lobby', turn: 0, activeCell: null, selection: null, lastRoll: 0 },
+        players: {} 
+      });
+      location.reload();
+    }
+  }
+
+  function listenSystem() {
+    db.ref('game').on('value', s => {
+      const g = s.val() || {};
+      
+      // ניהול מסכים
+      document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
+      document.getElementById('endOverlay').style.display = (g.state === 'finished') ? 'flex' : 'none';
+      document.getElementById('gameScreen').style.visibility = (g.state === 'playing') ? 'visible' : 'hidden';
+
+      if(g.state === 'playing') initBoard();
+      
+      // עדכון מודאל (שאלות)
+      if(g.activeCell) {
+        document.getElementById('infoModal').style.display = 'flex';
+        // (כאן תבוא הלוגיקה של הצגת השאלה מה-gameData)
+      } else {
+        document.getElementById('infoModal').style.display = 'none';
+      }
+    });
+
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      const ids = Object.keys(ps);
+      
+      // עדכון לובי
+      document.getElementById('lobbyPlayersCount').innerText = ids.length > 0 ? `רשומים: ${ids.length} קבוצות` : "ממתין לשחקנים...";
+      
+      // עדכון לוח (חיילים)
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      const sortedPlayers = ids.map(id => ps[id]).sort((a,b) => b.pos - a.pos);
+
+      document.getElementById('playersStatusList').innerHTML = ids.map(id => {
+        const p = ps[id];
+        const pawn = document.createElement('div');
+        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        document.body.appendChild(pawn);
+        const cell = document.getElementById(`cell-${p.pos + 1}`);
+        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px"; }
+        return `<div style="background:var(--card); padding:10px; border-radius:8px; border-right:4px solid ${p.color}; margin-bottom:5px;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
+      }).join('');
+
+      // עדכון מסך סיכום
+      document.getElementById('finalScoreList').innerHTML = sortedPlayers.map((p, idx) => `
+        <div class="score-item" style="border-right: 5px solid ${p.color}">
+          <span>${idx+1}. ${p.avatar} ${p.name}</span>
+          <span>משבצת ${p.pos+1}</span>
+        </div>
+      `).join('');
+    });
+  }
 
   function initBoard() {
-    const container = document.getElementById('boardContainer'); container.innerHTML = '';
+    const container = document.getElementById('boardContainer');
+    if(container.children.length > 0) return; // מניעת טעינה כפולה
     const ts = new Date().getTime();
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
@@ -76,42 +151,17 @@
       for(let c=1; c<=10; c++) {
         const num = (r * 10) + c;
         const cell = document.createElement('div');
-        const data = gameData[num];
-        cell.className = `cell ${data ? 'type-'+data.type : ''}`;
-        cell.id = `cell-${num}`;
+        cell.className = 'cell'; cell.id = `cell-${num}`;
         cell.style.backgroundImage = `url('images/${num}.jpeg?v=${ts}')`;
-        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${data?.title || ""}</div>`;
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">שלב תכנוני</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
     }
   }
 
-  function listenGame() {
-    db.ref('game').on('value', s => {
-      const g = s.val();
-      if(g.activeCell) {
-        const data = gameData[g.activeCell];
-        const body = document.getElementById('modalBody');
-        let optHtml = "";
-        if(data.options) {
-          optHtml = `<div class="options-grid">` + data.options.map((o, i) => {
-            let cls = (g.selection === i) ? (i === data.correct ? 'correct' : 'wrong') : '';
-            return `<div class="opt-box ${cls}">${String.fromCharCode(65+i)}. ${o}</div>`;
-          }).join('') + `</div>`;
-        }
-        body.innerHTML = `<h1>${data.title}</h1><p>${data.info || ""}</p><h3>${data.question || ""}</h3>${optHtml}`;
-        document.getElementById('infoModal').style.display = 'flex';
-      } else {
-        document.getElementById('infoModal').style.display = 'none';
-      }
-    });
-  }
-
-  function forceEnd() { db.ref('game').update({ state: 'finished' }); location.reload(); }
-
-  initBoard(); listenGame();
-  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 80, height: 80 });
+  listenSystem();
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 140, height: 140 });
 </script>
 </body>
 </html>
