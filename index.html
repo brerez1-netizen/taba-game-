@@ -7,23 +7,32 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
     html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
     .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); overflow: hidden; cursor: pointer; }
-    .milestone { border: 4px solid var(--gold); box-shadow: 0 0 15px var(--gold); z-index: 5; }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; pointer-events: none; min-height: 28px; display: flex; align-items: center; justify-content: center; line-height: 1.1; }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; z-index: 10; }
+    
+    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); cursor: pointer; transition: transform 0.2s; }
+    .cell:hover { transform: scale(1.03); z-index: 10; border-color: var(--blue); }
+    
+    /* עיצוב לפי סוג משבצת */
+    .type-knowledge { border-left: 6px solid var(--blue); }
+    .type-quiz { border-left: 6px solid var(--green); }
+    .type-wheel { border-left: 6px solid var(--gold); }
+    .type-surprise { border-left: 6px solid var(--red); }
+    
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
+    .cell-icon { position: absolute; top: 3px; left: 5px; font-size: 0.8rem; opacity: 0.8; }
+
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 650px; text-align: center; position: relative; box-shadow: 0 0 40px rgba(56, 189, 248, 0.3); }
-    .close-btn { position: absolute; top: 15px; left: 15px; background: var(--gold); color: black; border: none; padding: 8px 20px; cursor: pointer; border-radius: 8px; font-weight: bold; }
-    .modal-info { font-size: 1.2rem; margin: 20px 0; color: #e2e8f0; line-height: 1.5; text-align: right; }
-    .modal-question { background: rgba(250, 204, 21, 0.1); border: 2px dashed var(--gold); padding: 20px; border-radius: 12px; margin-top: 20px; text-align: right; }
-    .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 650px; text-align: center; position: relative; }
+    .close-btn { position: absolute; top: 15px; left: 15px; background: var(--gold); color: black; border: none; padding: 8px 15px; cursor: pointer; border-radius: 8px; font-weight: bold; }
+    
+    .pawn { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.6rem; box-shadow: 0 5px 10px #000; }
   </style>
 </head>
 <body>
@@ -31,9 +40,7 @@
 <div id="gameScreen" class="main-layout">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">🏙️ לוח תכנון העיר</h2>
-    <div style="font-size: 4rem; text-align: center; margin: 10px 0;" id="mainDice">🎲</div>
-    <div id="turnText" style="font-size:1.3rem; text-align:center; margin-bottom:15px; font-weight:bold; color:var(--gold);">-</div>
+    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px; margin-top:0;">🏙️ לוח תכנון העיר</h2>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
     <div id="qrcode" style="background:white; padding:10px; border-radius:10px; align-self:center; margin-top:10px;"></div>
   </div>
@@ -41,7 +48,7 @@
 
 <div id="infoModal" class="modal">
   <div class="modal-content">
-    <button class="close-btn" onclick="closeModal()">חזור ללוח X</button>
+    <button class="close-btn" onclick="closeModal()">חזור X</button>
     <div id="modalBody"></div>
   </div>
 </div>
@@ -51,50 +58,133 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מאגר התוכן המלא ל-50 משבצות
+  // הגדרת שלבים לפי הקובץ החדש
+  const stages = [
+    { id: 1, start: 1, name: "יוזמה והיתכנות" },
+    { id: 2, start: 6, name: "הכנה והגשה" },
+    { id: 3, start: 16, name: "בדיקות ותיאומים" },
+    { id: 4, start: 23, name: "הפקדה והתנגדויות" },
+    { id: 5, start: 34, name: "אישור ותוקף" }
+  ];
+
+  // מאגר הנתונים המלא מהקובץ שלך
   const gameData = {
-    1: { title: "יוזמה רעיונית", info: "בעל קרקע או יזם מחליטים לקדם שינוי ייעוד או תוספת זכויות.", question: "מי יכול ליזום תוכנית בסמכות וועדה מקומית?", sound: "start.mp3" },
-    2: { title: "איסוף נתונים", info: "איסוף מידע תכנוני, נסחי טאבו ומצב קיים בשטח.", question: "מהו המסמך המשפטי המעיד על בעלות בקרקע?" },
-    3: { title: "מדידת שטח", info: "מדידה על ידי מודד מוסמך להכנת רקע לתוכנית.", question: "לכמה זמן תקפה מדידה לצורך הגשת תוכנית?" },
-    4: { title: "פרוגרמה", info: "הגדרת צרכים ושימושים לתוכנית (ציבורי, מגורים, מסחר).", question: "מהו היחס הנדרש לשטחי ציבור בשכונה חדשה?" },
-    5: { title: "סקיצה ראשונית", info: "תרגום הפרוגרמה לשרטוטים אדריכליים ראשוניים.", question: "מהי המשמעות של 'קו בניין' בסקיצה?" },
-    6: { title: "תיאום יועצים", info: "פגישות עם יועצי תנועה, נוף, סביבה וקונסטרוקציה.", question: "איזה יועץ נדרש לאישור פתרונות חניה?" },
-    7: { title: "הכנת מסמכי תב\"ע", info: "עריכת הוראות התוכנית (תקנון) ותשריט.", question: "מה קובע במידה ויש סתירה בין התקנון לתשריט?" },
-    8: { title: "הגשה למקומית", info: "הגשת התוכנית במערכת המקוונת לוועדה המקומית.", question: "מהו מספר העותקים הדיגיטליים הנדרש?" },
-    9: { title: "בדיקת תנאי סף", info: "בדיקה מנהלתית של מסמכי התוכנית וחתימות.", question: "תוך כמה זמן על הוועדה להחזיר תשובה בתנאי סף?" },
-    10: { title: "תיקון ליקויים", info: "ביצוע תיקונים טכניים שעלו בבדיקת תנאי הסף.", question: "האם ניתן להוסיף שטחים בשלב תיקון תנאי סף?" },
-    11: { title: "חוות דעת מהנדס", info: "מהנדס הוועדה בוחן את ההיבטים התכנוניים של התוכנית.", question: "האם חוות דעת המהנדס מחייבת את הוועדה?" },
-    12: { title: "דיון בוועדת משנה", info: "דיון ראשון במוסד התכנון על מהות התוכנית.", question: "האם יזם רשאי להשתתף בדיון בוועדת המשנה?" },
-    13: { title: "קליטה במערכת", info: "התוכנית מקבלת סטטוס 'נקלטה' ומתחילה מניין ימים.", question: "מהי חשיבות מועד קליטת התוכנית?" },
-    14: { title: "בדיקת שמאות", info: "בחינת היבטים של היטל השבחה וטבלאות איזון.", question: "מהו סעיף 197 לחוק התכנון והבנייה?" },
-    15: { title: "המלצה להפקדה", info: "הוועדה המקומית ממליצה לוועדה המחוזית להפקיד.", question: "מה ההבדל בין המלצה לבין החלטה?" },
-    16: { title: "העברה למחוזית", info: "מסמכי התוכנית מועברים ללשכת התכנון המחוזית.", question: "מתי תוכנית נשארת בסמכות וועדה מקומית?" },
-    17: { title: "תנאי סף מחוזית", info: "בדיקת תנאי סף נוספת ברמה המחוזית.", question: "האם תנאי הסף במחוזית שונים מהמקומית?" },
-    18: { title: "השלמת מסמכים", info: "דרישות להשלמת חוות דעת של משרדי ממשלה.", question: "איזה משרד ממשלתי בוחן היבטי רעש?" },
-    19: { title: "חוות דעת מתכנן", info: "מתכנן המחוז מגיש את המלצתו לוועדה המחוזית.", question: "מהי המשמעות של 'תוכנית מתאר מחוזית' (תמ\"מ)?" },
-    20: { title: "דיון במחוזית", info: "דיון במליאת הוועדה המחוזית לקראת הפקדה.", question: "מי יושב ראש הוועדה המחוזית?" },
-    21: { title: "החלטה להפקדה", info: "החלטה רשמית של המחוזית להפקיד את התוכנית.", question: "אילו תנאים ניתן לקבוע בהחלטה להפקדה?" },
-    22: { title: "מילוי תנאים", info: "ביצוע התיקונים הנדרשים בהחלטת הוועדה.", question: "כמה זמן מוקצב למילוי תנאים להפקדה?" },
-    23: { title: "אישור נוסח", info: "אישור הנוסח שיפורסם בעיתונות וברשומות.", question: "מי מאשר את נוסח הפרסום?" },
-    24: { title: "החתמת יו\"ר", info: "יו\"ר הוועדה חותם על מסמכי התוכנית המופקדת.", question: "האם ניתן להפקיד תוכנית ללא חתימת היו\"ר?" },
-    25: { title: "שלב ההפקדה", info: "תחילת מניין הימים להגשת התנגדויות (60 יום).", question: "איפה ניתן לעיין בתוכנית המופקדת?" },
-    26: { title: "פרסום עיתונים", info: "פרסום הודעה ב-3 עיתונים (נפוץ, מקומי, ערבי).", question: "מה חובה לכלול בהודעת הפרסום?" },
-    27: { title: "הצבת שלטים", info: "הצבת שלטים בולטים בגבולות שטח התוכנית.", question: "מהו הגודל המינימלי של שלט הודעה?" },
-    28: { title: "הודעות לשכנים", info: "שליחת הודעות בדואר רשום לבעלי נכסים גובלים.", question: "מי מוגדר כ'שכן גובל' לעניין הודעות?" },
-    29: { title: "תקופת התנגדויות", info: "הזמן בו הציבור רשאי להגיש את השגותיו.", question: "האם ניתן להגיש התנגדות לאחר 60 יום?" },
-    30: { title: "קבלת התנגדויות", info: "ריכוז כל הפניות שהגיעו מהציבור לוועדה.", question: "מי רשאי להגיש התנגדות?" },
-    31: { title: "מינוי חוקר", info: "מינוי איש מקצוע לשמיעת התנגדויות רבות.", question: "מהו תפקידו של חוקר התנגדויות?" },
-    32: { title: "דיון התנגדויות", info: "שמיעת המתנגדים בפני וועדת המשנה.", question: "האם עו\"ד חייב לייצג מתנגד בדיון?" },
-    33: { title: "דו\"ח חוקר", info: "הגשת המלצות החוקר לוועדה המחוזית.", question: "האם הוועדה חייבת לקבל את המלצות החוקר?" },
-    34: { title: "החלטת וועדה", info: "קבלת החלטה סופית לגבי אישור התוכנית.", question: "מהן האפשרויות: אישור, דחייה או אישור בתנאים?" },
-    35: { title: "תיקון מסמכים", info: "תיקון סופי של התקנון והתשריט לפי ההחלטה.", question: "מהו 'נוסח סופי' לחתימה?" },
-    36: { title: "בדיקה טכנית", info: "בדיקה אחרונה של המערך הדיגיטלי לפני תוקף.", question: "מהו קובץ המבנה האחיד (מבנ\"א)?" },
-    37: { title: "מתן תוקף", info: "פרסום הודעה על אישור התוכנית ברשומות.", question: "מתי התוכנית הופכת לחוק מחייב?" },
-    38: { title: "פרסום רשומות", info: "הפרסום הרשמי ב'ילקוט הפרסומים' של המדינה.", question: "כמה זמן לאחר הפרסום התוכנית נכנסת לתוקף?" },
-    39: { title: "כניסה לתוקף", info: "היום ה-15 לאחר הפרסום ברשומות.", question: "האם ניתן להוציא היתר ביום ה-14?" },
-    40: { title: "הפקת היתר", info: "הגשת בקשה להיתר בנייה מכוח התוכנית החדשה.", question: "מהו 'מידע להיתר'?" },
-    41: { title: "החתמת מסמכים", info: "החתמת כל הגורמים הרלוונטיים על הבקשה.", question: "מי חייב לחתום על הבקשה להיתר?" },
-    42: { title: "תשלום אגרות", info: "חישוב ותשלום אגרות בנייה לוועדה המקומית.", question: "מהו ההבדל בין אגרה להיטל?" },
-    43: { title: "היטל השבחה", info: "תשלום בגין עליית ערך המקרקעין עקב התוכנית.", question: "מהו שיעור היטל ההשבחה מההשבחה?" },
-    44: { title: "תחילת עבודות", info: "קבלת היתר בנייה פיזי ותחילת עבודה בשטח.", question: "לכמה זמן תקף היתר בנייה?" },
-    45: { title: "ליווי ביצוע", info: "פיקוח עליון של האדריכל והמהנדס על הבנייה.", question: "מהו תפקידו של האחראי ל
+    1: { title: "יוזמה ראשונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד/זכויות/בינוי.", more: "יש לבדוק תכניות תקפות, מדיניות, תשתיות וסיכונים מוקדמים.", bonus: "שאלת בונוס משלב 1" },
+    2: { title: "בדיקת תכניות", type: "quiz", info: "נושא: מי רשאי ליזום, סוגי תכניות, סמכויות." },
+    3: { title: "ייעוץ ראשוני", type: "knowledge", info: "פגישה עם אדריכל/מתכנן להגדרת מטרות.", more: "ניסוח מטרות מדידות ולא שיווקיות." },
+    4: { title: "מיפוי בעלים", type: "regular", info: "זיהוי בעלי קרקע, שכנים וגופים משפיעים." },
+    5: { title: "בדיקת היתכנות", type: "regular", info: "בדיקה ראשונית של כדאיות תכנונית וכלכלית." },
+    6: { title: "איסוף מסמכים", type: "quiz", info: "נסחים, מדידות, מדיניות." },
+    7: { title: "צוות יועצים", type: "knowledge", info: "הכנה מוקדמת חוסכת התנגדויות ותיקונים." },
+    8: { title: "תשריט ותקנון", type: "quiz", info: "מרכיבי מסמכי תכנית." },
+    9: { title: "תיאום מקדים", type: "regular", info: "תיאום עם מהנדס העיר/רשות מקומית." },
+    10: { title: "הגשה ממוחשבת", type: "knowledge", info: "הגשה מלאה ומסודרת מקצרת לוחות זמנים." },
+    11: { title: "בדיקת שלמות", type: "quiz", info: "בדיקות טכניות לפני קליטה." },
+    12: { title: "מספר תכנית", type: "regular", info: "פתיחת תיק רשמי." },
+    13: { title: "ניסוח תקנון", type: "quiz", info: "הוראות תכנית." },
+    14: { title: "הגשה לוועדה", type: "knowledge", info: "התאמת סמכות (מקומית/מחוזית)." },
+    15: { title: "בדיקה מקדמית", type: "wheel", info: "תוצאות: דחייה / תיקונים / קידום." },
+    16: { title: "דרישות השלמה", type: "regular" },
+    17: { title: "תיאום תשתיות", type: "quiz" },
+    18: { title: "סבב תיקונים", type: "knowledge", info: "ניהול הערות ועקביות מסמכים." },
+    21: { title: "תנאים להפקדה", type: "knowledge" },
+    22: { title: "דיון בוועדה", type: "wheel" },
+    24: { title: "החלטת הפקדה", type: "wheel" },
+    25: { title: "פרסום עיתונות", type: "quiz" },
+    26: { title: "קבלת התנגדויות", type: "knowledge", info: "הפקדה ≠ אישור. זה שלב קריטי." },
+    30: { title: "החלטה", type: "wheel" },
+    33: { title: "אישור מותנה", type: "wheel" },
+    35: { title: "פרסום תוקף", type: "quiz" },
+    36: { title: "ערר/ערעור", type: "wheel" },
+    37: { title: "קליטת תכנית", type: "knowledge" },
+    39: { title: "סטייה מהתכנית", type: "wheel" },
+    42: { title: "הפקדה מחדש", type: "wheel" },
+    44: { title: "פרסום למתן תוקף", type: "knowledge" },
+    46: { title: "קלף הפתעה", type: "surprise" },
+    48: { title: "אישור סופי", type: "knowledge" },
+    49: { title: "הפקת לקחים", type: "knowledge" },
+    50: { title: "סיום המשחק 🎉", type: "regular" }
+  };
+
+  const typeIcons = { knowledge: "💡", quiz: "❓", wheel: "🎡", surprise: "🎁", regular: "📍" };
+
+  function getFileNameForCell(num) {
+    let s = stages.filter(st => num >= st.start).pop();
+    return `m${s.id}-${String(num - s.start + 1).padStart(2, '0')}.jpeg`;
+  }
+
+  function openCellInfo(num) {
+    const data = gameData[num];
+    const body = document.getElementById('modalBody');
+    const icon = typeIcons[data?.type] || "📍";
+    
+    body.innerHTML = `
+      <div style="font-size:3rem;">${icon}</div>
+      <h2 style="color:var(--gold); margin-bottom:5px;">משבצת ${num}</h2>
+      <h1 style="color:var(--blue); margin-top:0;">${data?.title || "שלב בתהליך"}</h1>
+      <div style="font-size:1.4rem; text-align:right; margin:20px 0; background:rgba(255,255,255,0.05); padding:20px; border-radius:10px;">
+        ${data?.info ? `<b>תיאור:</b> ${data.info}<br><br>` : ""}
+        ${data?.more ? `<b>ידע מורחב:</b> ${data.more}<br><br>` : ""}
+        ${data?.bonus ? `<div style="border:1px solid var(--blue); padding:10px; border-radius:8px;"><b>🌟 שאלת בונוס:</b> ${data.bonus}</div>` : ""}
+      </div>
+    `;
+    document.getElementById('infoModal').style.display = 'flex';
+  }
+
+  function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
+
+  function initBoard() {
+    const container = document.getElementById('boardContainer'); container.innerHTML = '';
+    const ts = new Date().getTime();
+    for(let r=0; r<5; r++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
+      for(let c=1; c<=10; c++) {
+        const num = (r * 10) + c;
+        const cell = document.createElement('div');
+        const typeClass = gameData[num] ? `type-${gameData[num].type}` : '';
+        cell.className = `cell ${typeClass}`;
+        cell.id = `cell-${num}`;
+        cell.onclick = () => openCellInfo(num);
+        cell.style.backgroundImage = `url('images/${getFileNameForCell(num)}?v=${ts}')`;
+        
+        cell.innerHTML = `
+          <div class="cell-num">${num}</div>
+          <div class="cell-icon">${typeIcons[gameData[num]?.type] || ""}</div>
+          <div class="cell-title">${gameData[num]?.title || ""}</div>
+        `;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
+
+  function listenPlayers() {
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      Object.keys(ps).forEach(id => {
+        const p = ps[id];
+        const pawn = document.createElement('div');
+        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        document.body.appendChild(pawn);
+        const cell = document.getElementById(`cell-${p.pos + 1}`);
+        if(cell) {
+          const r = cell.getBoundingClientRect();
+          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+        }
+      });
+      document.getElementById('playersStatusList').innerHTML = Object.keys(ps).map(id => `
+        <div style="background:rgba(255,255,255,0.05); margin-bottom:10px; padding:10px; border-radius:8px; border-right:4px solid ${ps[id].color}">
+          <b>${ps[id].avatar} ${ps[id].name}</b><br><small>משבצת ${ps[id].pos+1}</small>
+        </div>
+      `).join('');
+    });
+  }
+
+  db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
+  initBoard(); listenPlayers();
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 90, height: 90 });
+</script>
+</body>
+</html>
