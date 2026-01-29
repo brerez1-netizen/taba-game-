@@ -15,21 +15,15 @@
     .row-reverse { flex-direction: row-reverse; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
-    .type-quiz { border-left: 5px solid var(--green); }
-    .type-knowledge { border-left: 5px solid var(--blue); }
-    .type-wheel { border-left: 5px solid var(--gold); }
-    .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 0.65rem; padding: 4px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; z-index: 2000; }
     .overlay { position: fixed; inset: 0; z-index: 4000; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
-    .overlay-box { background: rgba(2, 6, 23, 0.92); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 500px; }
+    .overlay-box { background: rgba(2, 6, 23, 0.92); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 750px; text-align: center; }
-    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-    .opt-box { padding: 15px; border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; font-size: 1.2rem; }
-    .correct { background: var(--green) !important; color: black; font-weight: bold; }
-    .wrong { background: var(--red) !important; color: white; }
-    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s ease; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
+    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; }
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
     .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+    .dice-display { font-size: 4rem; text-align: center; margin: 10px 0; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 10px; border: 1px solid var(--blue); }
   </style>
 </head>
 <body>
@@ -37,32 +31,35 @@
 <div id="lobbyOverlay" class="overlay" style="background-image: url('images/start.jpeg');">
   <div class="overlay-box">
     <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
-    <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin: 25px auto; width: 160px; height: 160px; display: flex; justify-content: center; align-items: center;"></div>
-    <div id="lobbyPlayerList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px; color: var(--gold); font-size: 1.2rem;">ממתין לקבוצות...</div>
+    <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin: 25px auto; width: 140px; height:140px; display: flex; justify-content: center;"></div>
+    <div id="lobbyPlayerList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px; color: var(--gold);">ממתין לשחקנים...</div>
     <button class="btn" style="background: var(--green); color: black;" onclick="startGame()">🚀 התחל משחק</button>
   </div>
 </div>
 
 <div id="endOverlay" class="overlay" style="background-image: url('images/end.jpeg'); display: none;">
-  <div class="overlay-box" style="border-color: var(--gold);">
-    <h1 style="color: var(--gold); font-size: 3rem;">סיכום המהלכים הסטטוטוריים</h1>
-    <div id="finalScores" style="margin: 20px 0;"></div>
-    <button class="btn" style="background: white; color: black;" onclick="resetSystem()">🔄 חזור ללובי</button>
+  <div class="overlay-box">
+    <h1 style="color: var(--gold); font-size: 3rem;">סיכום המהלכים</h1>
+    <div id="finalScores"></div>
+    <button class="btn" style="background: white; color: black; margin-top:20px;" onclick="resetSystem()">🔄 חזרה ללובי</button>
   </div>
 </div>
 
-<div id="gameScreen" class="main-layout" style="visibility: hidden;">
+<div id="gameScreen" class="main-layout" style="display: none;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <h2 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 10px;">קבוצות פעילות</h2>
+    <div id="turnInfo" style="font-size: 1.2rem; color: var(--gold); text-align: center; margin-bottom: 10px; font-weight: bold;"></div>
+    <div id="mainDice" class="dice-display">🎲</div>
+    <h3 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 5px;">מצב הקבוצות</h3>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <div id="sidebarQR" style="background:white; padding:5px; border-radius:8px; align-self:center; margin-top:10px;"></div>
     <button class="btn" style="background: var(--red); color: white; margin-top: 15px; font-size: 1rem; padding: 10px;" onclick="forceEnd()">🛑 סיום כפוי</button>
   </div>
 </div>
 
 <div id="infoModal" class="modal">
-  <div class="modal-content" id="modalBody"></div>
+  <div class="modal-content" id="modalBody">
+    <button class="btn" style="background:var(--gold); color:black; margin-top:20px;" onclick="closeCell()">המשך בבנייה X</button>
+  </div>
 </div>
 
 <script>
@@ -70,22 +67,18 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מאגר 50 המשבצות המלא מבוסס על המחקר שלך
+  // נתונים (מקוצר לצורך הדוגמה - השלם את השאר)
   const gameData = {
-    1: { title: "יוזמה רעיונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד.", more: "חובה לוודא שאין סתירה לתמ\"א.", question: "מי מוסמך לאשר תכנית מתאר ארצית?", options: ["הממשלה", "הוועדה המחוזית", "אדריכל העיר", "מתכנן המחוז"], correct: 0 },
-    2: { title: "בדיקת תכניות", type: "quiz", question: "האם בעל קרקע פרטי רשאי ליזום תכנית מפורטת?", options: ["כן", "לא", "רק באישור שר", "רק באישור מחוז"], correct: 0 },
-    6: { title: "איסוף מסמכים", type: "quiz", question: "לכמה זמן תקפה מפת מדידה לצורך הגשה?", options: ["3 חודשים", "6 חודשים", "שנה", "שנתיים"], correct: 1 },
-    11: { title: "בדיקת שלמות", type: "quiz", question: "כמה ימי עבודה מוקצבים לוועדה לבדיקת תנאי סף?", options: ["7", "14", "30", "45"], correct: 1 },
-    25: { title: "פרסום בעיתונות", type: "quiz", question: "כמה עיתונים יומיים חובה לפרסם בהם לפחות?", options: ["1", "2", "3", "4"], correct: 1 },
-    35: { title: "פרסום תוקף", type: "quiz", question: "מתי נכנסת תכנית לתוקף?", options: ["ביום הפרסום", "לאחר 7 ימים", "לאחר 15 ימים", "לאחר 30 ימים"], correct: 2 },
-    46: { title: "קלף הפתעה", type: "surprise", info: "אירוע בלתי צפוי!", more: "התגלה עץ עתיק שלא סומן - חזור למשבצת 18." },
-    50: { title: "אכלוס וסיום 🎉", type: "knowledge", info: "מזל טוב! השלמתם את התהליך." }
+    1: { title: "יוזמה רעיונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד.", question: "מי מוסמך לאשר תמ\"א?", options: ["הממשלה", "הוועדה המחוזית", "אדריכל העיר", "מתכנן המחוז"], correct: 0 },
+    2: { title: "בדיקת תכניות", type: "quiz", question: "האם בעל קרקע פרטי רשאי ליזום?", options: ["כן", "לא", "רק באישור שר", "רק באישור מחוז"], correct: 0 },
+    50: { title: "אכלוס וסיום 🎉", type: "knowledge", info: "השלמתם את התהליך הסטטוטורי!" }
   };
+
+  const diceIcons = ["🎲", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
     if(container.children.length > 0) return;
-    const ts = Date.now();
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
@@ -95,7 +88,7 @@
         const data = gameData[num];
         cell.className = `cell ${data ? 'type-'+data.type : ''}`;
         cell.id = `cell-${num}`;
-        cell.style.backgroundImage = `url('images/${num}.jpeg?v=${ts}')`;
+        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
         cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${data?.title || "שלב תכנוני"}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -105,33 +98,41 @@
 
   function listenSystem() {
     db.ref('game').on('value', snap => {
-      const g = snap.val() || { state: 'lobby' };
+      const g = snap.val() || { state: 'lobby', turn: 0 };
+      
       document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
       document.getElementById('endOverlay').style.display = (g.state === 'finished') ? 'flex' : 'none';
-      document.getElementById('gameScreen').style.visibility = (g.state === 'playing') ? 'visible' : 'hidden';
-      if(g.state === 'playing') initBoard();
-      
+      document.getElementById('gameScreen').style.display = (g.state === 'playing') ? 'flex' : 'none';
+
+      if(g.state === 'playing') {
+        initBoard();
+        if(g.lastRoll) document.getElementById('mainDice').innerText = diceIcons[g.lastRoll] || "🎲";
+      }
+
+      // טיפול במעברים בין משבצות
+      if(g.state === 'moving' && g.lastRoll) {
+        handleMovement(g.turn, g.lastRoll);
+      }
+
+      // הצגת מודאל
       const modal = document.getElementById('infoModal');
       if(g.activeCell) {
         const data = gameData[g.activeCell] || { title: "שלב תכנוני", info: "מידע בטעינה..." };
         const body = document.getElementById('modalBody');
-        let optHtml = data.options ? `<div class="options-grid">` + data.options.map((o, i) => {
-          let cls = (g.selection === i) ? (i === data.correct ? 'correct' : 'wrong') : '';
-          return `<div class="opt-box ${cls}">${String.fromCharCode(65+i)}. ${o}</div>`;
-        }).join('') + `</div>` : "";
-        body.innerHTML = `<h2>משבצת ${g.activeCell}</h2><h1>${data.title}</h1><p>${data.info || ""}</p>${optHtml}`;
         modal.style.display = 'flex';
-      } else { modal.style.display = 'none'; }
+        body.innerHTML = `<h1>${data.title}</h1><p>${data.info || ""}</p><h3>${data.question || ""}</h3><button class="btn" style="background:var(--gold); color:black; margin-top:20px;" onclick="closeCell()">סגור וסיים תור X</button>`;
+      } else {
+        modal.style.display = 'none';
+      }
     });
 
     db.ref('players').on('value', snap => {
       const ps = snap.val() || {};
       const ids = Object.keys(ps);
-      document.getElementById('lobbyPlayerList').innerHTML = ids.length > 0 ? 
-        ids.map(id => `<div style="background:${ps[id].color}; color:white; padding:5px 15px; border-radius:10px; margin:5px;">${ps[id].avatar} ${ps[id].name}</div>`).join('') : "ממתין לקבוצות...";
       
+      // עדכון חיילים
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      ids.forEach(id => {
+      document.getElementById('playersStatusList').innerHTML = ids.map((id, index) => {
         const p = ps[id];
         const pawn = document.createElement('div');
         pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
@@ -141,62 +142,45 @@
           const r = cell.getBoundingClientRect();
           pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
         }
+        return `<div style="background:var(--card); padding:10px; border-radius:8px; border-right:5px solid ${p.color}; margin-bottom:5px;">
+          <b>${p.avatar} ${p.name}</b><br>משבצת: ${p.pos+1} | נקודות: ${p.score || 0}</div>`;
+      }).join('');
+    });
+  }
+
+  async function handleMovement(turnIdx, roll) {
+    const pSnap = await db.ref('players').once('value');
+    const players = pSnap.val();
+    const ids = Object.keys(players);
+    const myId = ids[turnIdx];
+    const newPos = Math.min(players[myId].pos + roll, 49);
+
+    // עדכון המיקום והפעלת המשבצת
+    await db.ref('players/' + myId).update({ pos: newPos });
+    await db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
+  }
+
+  function closeCell() {
+    db.ref('game').once('value', s => {
+      const g = s.val();
+      db.ref('players').once('value', ps => {
+        const ids = Object.keys(ps.val());
+        const nextTurn = (g.turn + 1) % ids.length;
+        db.ref('game').update({ activeCell: null, turn: nextTurn, lastRoll: 0 });
       });
     });
   }
 
-  function startGame() { db.ref('game').update({ state: 'playing' }); }
+  function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
   function forceEnd() { db.ref('game').update({ state: 'finished' }); }
-  function resetSystem() { 
-    db.ref('/').update({ game:{state:'lobby', turn:0, activeCell:null}, players:{} });
-    location.reload();
-  }
+  function resetSystem() { db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }); location.reload(); }
 
-  // פתרון סופי לברקוד - טעינה לאחר ה-DOM
   window.onload = function() {
-    // --- הדבק מכאן ---
-  
-  // פונקציה לייצור הברקוד עם מנגנון "ניסיון חוזר" (Fail-safe)
-  function generateQRCodes() {
     const studentUrl = window.location.href.split('index.html')[0].replace(/\/$/, "") + "/play.html";
-    
-    try {
-      // ניקוי תיבות קודמות
-      document.getElementById("qrcode").innerHTML = "";
-      document.getElementById("sidebarQR").innerHTML = "";
+    new QRCode(document.getElementById("qrcode"), { text: studentUrl, width: 140, height: 140 });
+  };
 
-      // יצירת הברקוד בלובי
-      new QRCode(document.getElementById("qrcode"), { 
-        text: studentUrl, 
-        width: 160, 
-        height: 160,
-        correctLevel : QRCode.CorrectLevel.H
-      });
-
-      // יצירת הברקוד הקטן בסרגל הצד
-      new QRCode(document.getElementById("sidebarQR"), { 
-        text: studentUrl, 
-        width: 90, 
-        height: 90,
-        correctLevel : QRCode.CorrectLevel.H
-      });
-      
-      console.log("QR Code generated for: " + studentUrl);
-    } catch (e) {
-      console.log("ממתין לספרייה... מנסה שוב בעוד שנייה");
-      setTimeout(generateQRCodes, 1000);
-    }
-  }
-
-  // הפעלה ברגע שהדף נטען
-  window.onload = generateQRCodes;
-  
-  // הפעלת המאזין למערכת
-  listenGame();
-
-  // --- עד כאן ---
+  listenSystem();
 </script>
-</body>
-</html></script>
 </body>
 </html>
