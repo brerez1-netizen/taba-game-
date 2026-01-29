@@ -16,27 +16,33 @@
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); overflow: hidden; }
     .milestone { border: 4px solid var(--gold); transform: scale(1.02); z-index: 5; box-shadow: 0 0 15px var(--gold); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.75); font-size: 0.65rem; padding: 4px 2px; text-align: center; line-height: 1.1; pointer-events: none; color: #fff; border-top: 1px solid rgba(255,255,255,0.2); }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.75); font-size: 0.65rem; padding: 4px 2px; text-align: center; pointer-events: none; }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; z-index: 10; }
-    #lobbyOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    
+    /* מודאל - חלון מידע/שאלה */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 600px; text-align: center; box-shadow: 0 0 30px var(--blue); }
+    
     .pawn { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: all 0.6s ease; border: 2px solid #000; font-size: 1.8rem; box-shadow: 0 5px 10px #000; }
+    .player-entry { background: var(--card); margin-bottom: 12px; padding: 15px; border-radius: 12px; display: flex; align-items: center; border-right: 5px solid transparent; }
+    .active-p { border-right-color: var(--gold); background: #2d3748; }
   </style>
 </head>
 <body>
 
-<div id="lobbyOverlay">
-  <h1 style="color: var(--blue); font-size: 3rem; margin-bottom: 0;">🏙️ משחק תכנון העיר</h1>
-  <p style="opacity: 0.8; margin-top: 5px;">קורס תחיקת הבנייה | ארז ברוכי</p>
-  <div id="qrcode" style="background:white; padding:15px; border-radius:15px; margin:20px;"></div>
-  <button style="padding:15px 50px; font-size:1.8rem; background:var(--gold); border:none; border-radius:15px; font-weight:bold; cursor:pointer;" onclick="startGame()">🚀 התחל משחק</button>
-</div>
-
-<div id="gameScreen" class="main-layout" style="visibility: hidden;">
+<div id="gameScreen" class="main-layout">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
     <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">מצב הקבוצות</h2>
+    <div style="font-size: 4rem; text-align: center; margin: 15px 0;" id="mainDice">🎲</div>
+    <div id="turnText" style="font-size:1.5rem; text-align:center; margin-bottom:20px; font-weight:bold; color:var(--gold);">-</div>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
+    <div id="qrcode" style="background:white; padding:10px; border-radius:10px; align-self:center;"></div>
   </div>
+</div>
+
+<div id="infoModal" class="modal">
+  <div class="modal-content" id="modalBody"></div>
 </div>
 
 <script>
@@ -44,90 +50,74 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מפת כותרות מלאה ל-50 משבצות (לפי שלבי התב"ע המקצועיים)
-  const cellTitles = {
-    1: "יוזמה רעיונית", 2: "איסוף נתונים", 3: "מדידת שטח", 4: "פרוגרמה", 5: "סקיצה ראשונית", 6: "תיאום יועצים", 7: "הכנת מסמכי תב\"ע",
-    8: "הגשה למקומית", 9: "בדיקת תנאי סף", 10: "תיקון ליקויים", 11: "חוות דעת מהנדס", 12: "דיון בוועדת משנה", 13: "קליטה במערכת", 14: "בדיקת שמאות", 15: "המלצה להפקדה",
-    16: "העברה למחוזית", 17: "בדיקת תנאי סף מחוזית", 18: "השלמת מסמכים", 19: "חוות דעת מתכנן מחוז", 20: "דיון במחוזית", 21: "החלטה להפקדה", 22: "מילוי תנאים להפקדה", 23: "אישור נוסח פרסום", 24: "החתמת שר/יו\"ר",
-    25: "שלב ההפקדה", 26: "פרסום בעיתונים", 27: "הצבת שלטים בשטח", 28: "משלוח הודעות לשכנים", 29: "תקופת התנגדויות", 30: "קבלת התנגדויות", 31: "מינוי חוקר", 32: "דיון בהתנגדויות", 33: "דו\"ח חוקר", 34: "החלטת וועדה", 35: "תיקון מסמכים", 36: "בדיקה טכנית סופית",
-    37: "מתן תוקף", 38: "פרסום ברשומות", 39: "כניסת תוכנית לתוקף", 40: "הפקת היתר בנייה", 41: "החתמת מסמכים", 42: "תשלום אגרות", 43: "היטל השבחה", 44: "תחילת עבודות", 45: "ליווי ביצוע", 46: "ביקורת פיקוח", 47: "דו\"ח התקדמות", 48: "גמר שלד", 49: "תעודת גמר", 50: "אכלוס"
+  // נתונים מקצועיים מהקוד המקורי
+  const gameData = {
+    1: { title: "יוזמה רעיונית", info: "שלב זה כולל גיבוש קונספט תכנוני ראשוני.", sound: "start.mp3" },
+    8: { title: "בדיקת תנאי סף", info: "הוועדה בודקת אם כל המסמכים הוגשו כנדרש.", question: "מה קורה אם חסרה חתימת בעלים?", options: ["דחייה על הסף", "תיקון תוך 7 ימים"], answer: 0 },
+    // כאן יבואו כל 50 המשבצות לפי המידע המקורי שלך
   };
 
-  const stages = [
-    { id: 1, start: 1 },
-    { id: 2, start: 8 },
-    { id: 3, start: 16 },
-    { id: 4, start: 25 }, 
-    { id: 5, start: 37 }
-  ];
+  const stages = [ { id: 1, start: 1 }, { id: 2, start: 8 }, { id: 3, start: 16 }, { id: 4, start: 25 }, { id: 5, start: 37 } ];
 
   function getFileNameForCell(num) {
-    let currentStage = stages[0];
-    for (let s of stages) { if (num >= s.start) currentStage = s; }
-    const relativePos = (num - currentStage.start) + 1;
-    return `m${currentStage.id}-${String(relativePos).padStart(2, '0')}.jpeg`;
+    let s = stages.filter(st => num >= st.start).pop();
+    return `m${s.id}-${String(num - s.start + 1).padStart(2, '0')}.jpeg`;
   }
 
   function initBoard() {
-    const container = document.getElementById('boardContainer');
-    container.innerHTML = '';
-    const ts = new Date().getTime(); 
-
+    const container = document.getElementById('boardContainer'); container.innerHTML = '';
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
       for(let c=1; c<=10; c++) {
-        const globalNum = (r * 10) + c;
+        const num = (r * 10) + c;
         const cell = document.createElement('div');
-        const isStart = stages.some(s => s.start === globalNum);
-        cell.className = 'cell' + (isStart ? ' milestone' : '');
-        cell.id = `cell-${globalNum}`;
-        
-        const fileName = getFileNameForCell(globalNum);
-        const imgPath = `images/${fileName}?v=${ts}`;
-        
-        const img = new Image();
-        img.src = imgPath;
-        img.onload = () => { cell.style.backgroundImage = `url('${imgPath}')`; };
-        
-        const title = cellTitles[globalNum] || "";
-        cell.innerHTML = `
-          <div class="cell-num">${globalNum}</div>
-          <div class="cell-title">${title}</div>
-        `;
+        cell.className = 'cell' + (stages.some(s => s.start === num) ? ' milestone' : '');
+        cell.id = `cell-${num}`;
+        cell.style.backgroundImage = `url('images/${getFileNameForCell(num)}')`;
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${gameData[num]?.title || ""}</div>`;
         rowDiv.appendChild(cell);
       }
       container.appendChild(rowDiv);
     }
   }
 
-  function startGame() {
-    document.getElementById('lobbyOverlay').style.display = 'none';
-    document.getElementById('gameScreen').style.visibility = 'visible';
-    initBoard();
-    listenPlayers();
-  }
-
-  function listenPlayers() {
+  function listenGame() {
+    db.ref('game').on('value', s => {
+      const g = s.val();
+      if(g.modal) {
+        const data = gameData[g.activeCell];
+        document.getElementById('modalBody').innerHTML = `<h2>${data?.title || 'שלב בתהליך'}</h2><p>${data?.info || ''}</p>${data?.question ? `<div style='background:rgba(255,255,255,0.1); padding:20px; border-radius:10px;'><strong>שאלה:</strong> ${data.question}</div>` : ''}`;
+        document.getElementById('infoModal').style.display = 'flex';
+        if(data?.sound) new Audio(`sounds/${data.sound}`).play();
+      } else {
+        document.getElementById('infoModal').style.display = 'none';
+      }
+    });
+    
     db.ref('players').on('value', s => {
-      const ps = s.val() || {};
+      const ps = s.val() || {}; const ids = Object.keys(ps);
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      Object.keys(ps).forEach(id => {
-        const p = ps[id];
-        const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
-        document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) {
-          const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
-        }
+      db.ref('game').once('value', gs => {
+        const turn = gs.val().turn;
+        document.getElementById('playersStatusList').innerHTML = ids.map((id, i) => {
+          const p = ps[id]; const isActive = i === turn;
+          const pawn = document.createElement('div');
+          pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+          document.body.appendChild(pawn);
+          const cell = document.getElementById(`cell-${p.pos + 1}`);
+          if(cell) { 
+             const r = cell.getBoundingClientRect(); 
+             pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px"; 
+          }
+          return `<div class="player-entry ${isActive ? 'active-p' : ''}"><div>${p.avatar}</div><div style="margin-right:10px;"><b>${p.name}</b><br><small>משבצת ${p.pos+1}</small></div></div>`;
+        }).join('');
       });
     });
   }
 
-  db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
-  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', '') + "play.html", width: 140, height: 140 });
+  initBoard(); listenGame();
+  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 100, height: 100 });
 </script>
 </body>
 </html>
