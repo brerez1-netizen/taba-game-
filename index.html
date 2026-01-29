@@ -2,51 +2,66 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - MASTER</title>
+  <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  
   <script src="js/gameData.js"></script>
+
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    body { margin: 0; background: var(--bg); color: white; font-family: system-ui; overflow: hidden; }
+    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
+    
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
     .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
-    .cell { flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; }
+    
+    .cell { flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    
     .sidebar { flex: 1.2; background: #0f172a; border-right: 2px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .overlay { position: fixed; inset: 0; z-index: 4000; background: url('images/start.jpeg') center/cover; display: flex; align-items: center; justify-content: center; }
-    .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; }
+    
+    .overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); background-size: cover; }
+    .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
+    
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 30px; border-radius: 20px; border: 2px solid var(--blue); width: 600px; text-align: center; }
-    .pawn { width: 40px; height: 40px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid black; }
-    .btn { padding: 12px 30px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 2px solid var(--blue); width: 600px; text-align: center; }
+    
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; }
+    
+    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-green { background: var(--green); color: black; }
     .btn-red { background: var(--red); color: white; margin-top: auto; }
-    .dice-icon { font-size: 4rem; margin: 10px auto; display: block; }
+    
+    .qr-frame { background: white; padding: 10px; border-radius: 15px; margin: 20px auto; display: inline-block; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay" class="overlay">
   <div class="overlay-box">
-    <h1>🏙️ מסלול התב"ע</h1>
-    <img src="images/qr.png" width="160" height="160" style="border: 4px solid white; border-radius: 10px; margin: 20px;">
-    <div id="lobbyPlayerList" style="margin-bottom: 20px; color: var(--gold);">ממתין לקבוצות...</div>
+    <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
+    <div class="qr-frame">
+        <img id="autoQR" width="180" height="180" alt="טוען ברקוד...">
+    </div>
+    <div id="lobbyPlayerList" style="margin-bottom: 20px; color: var(--gold); font-size: 1.2rem;">ממתין לקבוצות...</div>
     <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
-    <br><button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">איפוס יסודות</button>
+    <br><br>
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס נתונים מלא</button>
   </div>
 </div>
 
 <div id="gameScreen" class="main-layout" style="display: none;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <div id="diceDisplay" class="dice-icon">🎲</div>
+    <div id="diceDisplay" style="font-size: 4rem; text-align: center;">🎲</div>
     <h3 style="color:var(--blue);">קבוצות בשטח</h3>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <img src="images/qr.png" width="80" height="80" style="margin: 10px auto; border: 1px solid white;">
+    <div id="playersStatusList" style="flex:1; overflow-y:auto; margin-top: 10px;"></div>
+    <div style="background:white; padding:5px; border-radius:8px; margin: 10px auto;">
+        <img id="sideQR" width="80" height="80">
+    </div>
     <button class="btn btn-red" onclick="resetSystem()">🛑 סיום ואיפוס</button>
   </div>
 </div>
@@ -56,9 +71,19 @@
 </div>
 
 <script>
+  // Firebase Configuration
   const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
+
+  // יצירת הברקוד באופן אוטומטי
+  function setupQR() {
+    const studentUrl = window.location.href.replace('index.html', '') + 'play.html';
+    // שימוש ב-API של QRServer - הכי אמין שיש
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
+    document.getElementById('autoQR').src = qrUrl;
+    document.getElementById('sideQR').src = qrUrl;
+  }
 
   function initBoard() {
     const container = document.getElementById('boardContainer');
@@ -71,7 +96,7 @@
         const cell = document.createElement('div');
         cell.className = 'cell'; cell.id = `cell-${num}`;
         cell.style.backgroundImage = `url('images/${num}.jpeg')`;
-        const title = gameData[num]?.title || "שלב תכנוני";
+        const title = (window.gameData && gameData[num]) ? gameData[num].title : "שלב תכנוני";
         cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -93,8 +118,8 @@
 
       const modal = document.getElementById('infoModal');
       if(g.activeCell) {
-        const data = gameData[g.activeCell] || { title: "שלב תכנוני", info: "בדיקת סטטוס..." };
-        document.getElementById('modalBody').innerHTML = `<h2>משבצת ${g.activeCell}</h2><h1>${data.title}</h1><p>${data.info || ""}</p><button class="btn btn-green" onclick="closeCell()">סיום תור X</button>`;
+        const data = (window.gameData && gameData[g.activeCell]) ? gameData[g.activeCell] : { title: "בדיקה", info: "שלב בתהליך." };
+        document.getElementById('modalBody').innerHTML = `<h1>${data.title}</h1><p>${data.info || ""}</p><button class="btn btn-green" onclick="closeCell()">סגור תור X</button>`;
         modal.style.display = 'flex';
       } else { modal.style.display = 'none'; }
     });
@@ -102,7 +127,8 @@
     db.ref('players').on('value', snap => {
       const ps = snap.val() || {};
       const ids = Object.keys(ps);
-      document.getElementById('lobbyPlayerList').innerHTML = ids.map(id => `<span style="background:${ps[id].color}; padding:5px 10px; border-radius:8px; margin:5px;">${ps[id].avatar} ${ps[id].name}</span>`).join('');
+      document.getElementById('lobbyPlayerList').innerHTML = ids.map(id => `<span style="background:${ps[id].color}44; border:1px solid ${ps[id].color}; padding:5px 12px; border-radius:10px; margin:5px;">${ps[id].avatar} ${ps[id].name}</span>`).join(' ');
+      
       document.querySelectorAll('.pawn').forEach(p => p.remove());
       document.getElementById('playersStatusList').innerHTML = ids.map(id => {
         const p = ps[id];
@@ -114,7 +140,7 @@
           const r = cell.getBoundingClientRect();
           pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
         }
-        return `<div style="background:var(--card); padding:8px; border-radius:8px; border-right:4px solid ${p.color}; margin-bottom:5px; font-size:0.9rem;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
+        return `<div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px; border-right:4px solid ${p.color}; margin-bottom:5px; font-size:0.85rem;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
       }).join('');
     });
   }
@@ -140,8 +166,10 @@
   }
 
   function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
-  function resetSystem() { if(confirm("איפוס מלא?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(()=>location.reload()); }
+  function resetSystem() { if(confirm("איפוס מלא?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(() => location.reload()); }
 
+  // הפעלה
+  setupQR();
   listenSystem();
 </script>
 </body>
