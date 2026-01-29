@@ -2,90 +2,184 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>📱 שחקן - מסלול התב"ע</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; }
-    body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-    .btn { background: var(--blue); color: black; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.2rem; font-weight: bold; width: 100%; margin: 10px 0; cursor: pointer; }
-    .opt-btn { background: #1e293b; color: white; border: 2px solid var(--blue); }
-    .active-p { border: 4px solid var(--gold); }
-    #status-bar { background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
+    body { background: var(--bg); color: white; font-family: system-ui, -apple-system, sans-serif; text-align: center; margin: 0; padding: 20px; overflow-x: hidden; }
+    
+    .container { max-width: 500px; margin: 0 auto; }
+    .card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+    
+    input, select { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--blue); background: #0f172a; color: white; font-size: 1.1rem; box-sizing: border-box; }
+    
+    .btn { background: var(--blue); color: #020617; border: none; padding: 18px; border-radius: 15px; font-size: 1.3rem; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 0 #0284c7; }
+    .btn:active { transform: translateY(3px); box-shadow: none; }
+    .btn:disabled { background: #475569; box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+
+    /* עיצוב מערך התשובות */
+    .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+    .opt-btn { background: #1e293b; color: white; border: 2px solid var(--blue); padding: 25px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; }
+    .opt-btn.selected { background: var(--blue); color: black; }
+
+    #status-msg { font-size: 1.2rem; color: var(--gold); margin: 15px 0; min-height: 1.5em; }
+    .avatar-display { font-size: 4rem; margin: 20px 0; }
   </style>
 </head>
 <body>
 
-<div id="setup">
-  <h2>הצטרפות למשחק</h2>
-  <input type="text" id="pName" placeholder="שם הקבוצה" style="padding:10px; width:80%; border-radius:5px;"><br>
-  <select id="pAvatar" style="padding:10px; width:85%; margin:10px 0; border-radius:5px;">
-    <option value="🏗️">מנוף</option><option value="🏠">בית</option>
-    <option value="📐">סרגל</option><option value="🏙️">עיר</option>
-  </select><br>
-  <button class="btn" onclick="join()">הצטרף</button>
-</div>
-
-<div id="game" style="display:none;">
-  <div id="status-bar">
-    <div id="myTurnInfo">המתן לתורך...</div>
-  </div>
-  
-  <div id="controls">
-    <button id="diceBtn" class="btn" style="display:none;" onclick="roll()">🎲 הטל קובייה</button>
+<div class="container">
+  <div id="setupView">
+    <h1 style="color: var(--blue);">הצטרפות למסלול</h1>
+    <div class="card">
+      <input type="text" id="playerName" placeholder="שם הקבוצה / סטודנט">
+      <select id="playerAvatar">
+        <option value="🏗️">🏗️ מנוף</option>
+        <option value="🏠">🏠 בית פרטי</option>
+        <option value="📐">📐 סרגל מדידה</option>
+        <option value="🏙️">🏙️ רב קומות</option>
+        <option value="🚜">🚜 טרקטור</option>
+      </select>
+      <button class="btn" onclick="joinGame()">🚀 היכנס למשחק</button>
+    </div>
   </div>
 
-  <div id="quiz-ui" style="display:none;">
-    <h3>בחר תשובה:</h3>
-    <button class="btn opt-btn" onclick="sendAns(0)">א</button>
-    <button class="btn opt-btn" onclick="sendAns(1)">ב</button>
-    <button class="btn opt-btn" onclick="sendAns(2)">ג</button>
-    <button class="btn opt-btn" onclick="sendAns(3)">ד</button>
+  <div id="gameView" style="display: none;">
+    <div id="status-msg">טוען נתונים...</div>
+    
+    <div class="card">
+      <div id="avatarBox" class="avatar-display"></div>
+      <h2 id="nameBox"></h2>
+      <div id="posBox" style="color: var(--blue);">משבצת: 1</div>
+    </div>
+
+    <div id="diceSection" style="display: none;">
+      <button id="rollBtn" class="btn" onclick="rollDice()">🎲 הטל קובייה</button>
+    </div>
+
+    <div id="quizSection" style="display: none;">
+      <h3 style="color: var(--gold);">בחר תשובה:</h3>
+      <div class="quiz-grid">
+        <button class="opt-btn" onclick="submitAnswer(0)">א</button>
+        <button class="opt-btn" onclick="submitAnswer(1)">ב</button>
+        <button class="opt-btn" onclick="submitAnswer(2)">ג</button>
+        <button class="opt-btn" onclick="submitAnswer(3)">ד</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
+  // הגדרות Firebase - זהות למסך המרצה
+  const config = { 
+    apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", 
+    databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", 
+    projectId: "erez-taba-game" 
+  };
   firebase.initializeApp(config);
   const db = firebase.database();
-  let myId = null;
 
-  function join() {
-    const name = document.getElementById('pName').value;
-    const avatar = document.getElementById('pAvatar').value;
-    if(!name) return;
-    myId = Date.now().toString();
-    db.ref('players/' + myId).set({ name, avatar, pos: 0, color: '#'+Math.floor(Math.random()*16777215).toString(16) });
-    document.getElementById('setup').style.display = 'none';
-    document.getElementById('game').style.display = 'block';
-    listen();
+  let myId = localStorage.getItem('erez_game_id') || null;
+  let myData = null;
+
+  // הצטרפות למשחק
+  function joinGame() {
+    const name = document.getElementById('playerName').value;
+    const avatar = document.getElementById('playerAvatar').value;
+    if (!name) return alert("נא להזין שם");
+
+    myId = "p_" + Date.now();
+    myData = {
+      name: name,
+      avatar: avatar,
+      pos: 0,
+      color: '#' + Math.floor(Math.random()*16777215).toString(16),
+      lastActive: Date.now()
+    };
+
+    db.ref('players/' + myId).set(myData);
+    localStorage.setItem('erez_game_id', myId);
+    
+    showGameView();
   }
 
-  function listen() {
-    db.ref('game').on('value', s => {
-      const g = s.val();
-      db.ref('players').once('value', ps => {
-        const ids = Object.keys(ps.val() || {});
-        const isMyTurn = ids[g.turn] === myId;
+  function showGameView() {
+    document.getElementById('setupView').style.display = 'none';
+    document.getElementById('gameView').style.display = 'block';
+    startListening();
+  }
+
+  function startListening() {
+    // האזנה למצב המשחק הכללי
+    db.ref('game').on('value', snapshot => {
+      const game = snapshot.val() || {};
+      
+      db.ref('players').once('value', pSnap => {
+        const players = pSnap.val() || {};
+        const playerIds = Object.keys(players);
+        const currentPlayerId = playerIds[game.turn];
+        const isMyTurn = (currentPlayerId === myId);
+
+        // עדכון סטטוס תור
+        const statusMsg = document.getElementById('status-msg');
+        if (isMyTurn) {
+          statusMsg.innerText = "זה התור שלך! 🌟";
+          statusMsg.style.color = "var(--gold)";
+        } else {
+          const activeName = players[currentPlayerId]?.name || "מישהו אחר";
+          statusMsg.innerText = "המתן בסבלנות... תור " + activeName;
+          statusMsg.style.color = "white";
+        }
+
+        // ניהול תצוגת קובייה
+        // מציגים קובייה רק אם זה תורי ואין כרגע שאלה פתוחה או תנועה
+        document.getElementById('diceSection').style.display = 
+          (isMyTurn && !game.activeCell && game.state !== 'moving') ? 'block' : 'none';
+
+        // ניהול תצוגת שאלות
+        // מציגים שאלות רק אם השחקן הנוכחי (בתורו) נמצא על משבצת פעילה
+        document.getElementById('quizSection').style.display = 
+          (isMyTurn && game.activeCell) ? 'block' : 'none';
         
-        document.getElementById('myTurnInfo').innerText = isMyTurn ? "תורך לשחק!" : "תור של: " + ps.val()[ids[g.turn]]?.name;
-        document.getElementById('diceBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
-        
-        // הצגת כפתורי קוויז רק אם מופעלת משבצת קוויז והגיע תורי
-        document.getElementById('quiz-ui').style.display = (isMyTurn && g.activeCell) ? 'block' : 'none';
+        // עדכון פרטי שחקן שלי
+        if (players[myId]) {
+          document.getElementById('avatarBox').innerText = players[myId].avatar;
+          document.getElementById('nameBox').innerText = players[myId].name;
+          document.getElementById('posBox').innerText = "משבצת: " + (players[myId].pos + 1);
+        }
       });
     });
   }
 
-  function roll() {
-    const r = Math.floor(Math.random() * 6) + 1;
-    db.ref('game').update({ lastRoll: r, state: 'moving' });
-    // כאן תבוא הלוגיקה של הזזת השחקן ב-Firebase
+  function rollDice() {
+    const roll = Math.floor(Math.random() * 6) + 1;
+    // עדכון ה-Firebase כדי שהמרצה יראה את ההגרלה
+    db.ref('game').update({ 
+      lastRoll: roll, 
+      state: 'moving',
+      selection: null // איפוס בחירה קודמת
+    });
   }
 
-  function sendAns(idx) {
-    db.ref('game').update({ selection: idx });
+  function submitAnswer(index) {
+    // שליחת הבחירה ל-Firebase - המרצה יראה את זה מיד
+    db.ref('game').update({ selection: index });
+    
+    // סימון ויזואלי מקומי
+    const btns = document.querySelectorAll('.opt-btn');
+    btns.forEach((b, i) => {
+      b.classList.toggle('selected', i === index);
+    });
+  }
+
+  // בדיקה אם השחקן כבר רשום
+  if (myId) {
+    db.ref('players/' + myId).once('value', s => {
+      if (s.exists()) showGameView();
+      else localStorage.removeItem('erez_game_id');
+    });
   }
 </script>
 </body>
