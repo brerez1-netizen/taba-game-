@@ -67,10 +67,38 @@
   </div>
 </div>
 
-<div id="infoModal" class="modal">
-  <div id="modalBody" class="modal-content"></div>
-</div>
+function initBoard() {
+    // בדיקה אם המידע נטען מהקובץ החיצוני
+    if (!window.gameData) {
+        console.log("ממתין לנתוני המשבצות...");
+        setTimeout(initBoard, 500); // ניסיון חוזר בעוד חצי שנייה
+        return;
+    }
 
+    const container = document.getElementById('boardContainer');
+    if(container.children.length > 0) return; // מניעת בנייה כפולה
+    
+    console.log("מתחיל בניית לוח עם " + Object.keys(window.gameData).length + " משבצות.");
+
+    for(let r=0; r<5; r++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
+      for(let c=1; c<=10; c++) {
+        const num = (r * 10) + c;
+        const cell = document.createElement('div');
+        cell.className = 'cell'; cell.id = `cell-${num}`;
+        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
+        
+        // משיכת הנתונים מהקובץ החיצוני
+        const data = window.gameData[num];
+        const title = data ? data.title : "שלב סטטוטורי " + num;
+        
+        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
+  }
 <script>
   // Firebase Configuration
   const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
