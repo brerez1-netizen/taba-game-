@@ -154,12 +154,49 @@
 
   // פתרון סופי לברקוד - טעינה לאחר ה-DOM
   window.onload = function() {
+    // --- הדבק מכאן ---
+  
+  // פונקציה לייצור הברקוד עם מנגנון "ניסיון חוזר" (Fail-safe)
+  function generateQRCodes() {
     const studentUrl = window.location.href.split('index.html')[0].replace(/\/$/, "") + "/play.html";
-    new QRCode(document.getElementById("qrcode"), { text: studentUrl, width: 160, height: 160 });
-    new QRCode(document.getElementById("sidebarQR"), { text: studentUrl, width: 90, height: 90 });
-  };
+    
+    try {
+      // ניקוי תיבות קודמות
+      document.getElementById("qrcode").innerHTML = "";
+      document.getElementById("sidebarQR").innerHTML = "";
 
-  listenSystem();
+      // יצירת הברקוד בלובי
+      new QRCode(document.getElementById("qrcode"), { 
+        text: studentUrl, 
+        width: 160, 
+        height: 160,
+        correctLevel : QRCode.CorrectLevel.H
+      });
+
+      // יצירת הברקוד הקטן בסרגל הצד
+      new QRCode(document.getElementById("sidebarQR"), { 
+        text: studentUrl, 
+        width: 90, 
+        height: 90,
+        correctLevel : QRCode.CorrectLevel.H
+      });
+      
+      console.log("QR Code generated for: " + studentUrl);
+    } catch (e) {
+      console.log("ממתין לספרייה... מנסה שוב בעוד שנייה");
+      setTimeout(generateQRCodes, 1000);
+    }
+  }
+
+  // הפעלה ברגע שהדף נטען
+  window.onload = generateQRCodes;
+  
+  // הפעלת המאזין למערכת
+  listenGame();
+
+  // --- עד כאן ---
 </script>
+</body>
+</html></script>
 </body>
 </html>
