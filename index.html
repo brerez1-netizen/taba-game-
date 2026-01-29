@@ -16,13 +16,13 @@
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); cursor: pointer; transition: 0.2s; }
     .cell:hover { transform: scale(1.03); z-index: 10; border-color: var(--blue); }
-    /* סימון סוגי משבצות מהמחקר */
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
+    /* פסים צבעוניים לפי סוג משבצת מהמחקר */
     .type-knowledge { border-left: 5px solid var(--blue); }
     .type-quiz { border-left: 5px solid var(--green); }
     .type-wheel { border-left: 5px solid var(--gold); }
     .type-surprise { border-left: 5px solid var(--red); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
     .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 680px; text-align: center; position: relative; }
     .close-btn { position: absolute; top: 15px; left: 15px; background: var(--gold); color: black; border: none; padding: 8px 15px; cursor: pointer; border-radius: 8px; font-weight: bold; }
@@ -49,7 +49,7 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // מפת שלבים לפי המחקר המעמיק
+  // הגדרת השלבים הסטטוטוריים מהמחקר שלך
   const stages = [
     { id: 1, start: 1, name: "יוזמה והיתכנות" },
     { id: 2, start: 6, name: "הכנה והגשה" },
@@ -58,25 +58,47 @@
     { id: 5, start: 34, name: "אישור ותוקף" }
   ];
 
-  // הטמעת תוכן המחקר לתוך ה-Data של המשחק
+  // תוכן המשבצות המלא מהמחקר
   const gameData = {
-    1: { title: "יוזמה ראשונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד/זכויות/בינוי.", more: "בבדיקה הראשונית חובה לוודא שאין סתירה לתכניות מתאר ארציות (תמ\"א).", bonus: "מי מוסמך לאשר תכנית מתאר ארצית? (הממשלה)" },
-    2: { title: "בדיקת תכניות בתוקף", type: "quiz", info: "בדיקה האם התכנית מתאימה להיררכיה התכנונית.", question: "מי רשאי ליזום תכנית מפורטת? (בעל קרקע פרטי/מוסד תכנון)" },
-    3: { title: "ייעוץ ראשוני", type: "knowledge", info: "פגישת פרה-רולינג עם מהנדס הרשות.", more: "מטרת הפגישה היא לייצר ודאות תכנונית טרם ההשקעה הכספית הכבדה." },
-    6: { title: "איסוף מסמכים", type: "quiz", info: "ריכוז נסחי טאבו ומפות מדידה.", question: "לכמה זמן תקפה מפת מדידה לצורך הגשה? (6 חודשים)" },
-    11: { title: "תנאי סף", type: "quiz", info: "בדיקה טכנית של שלמות מסמכי התכנית.", question: "כמה ימים מוקצבים לוועדה לבדיקת תנאי סף? (14 ימי עבודה)" },
-    15: { title: "בדיקה מקדמית", type: "wheel", info: "גלגל החלטה: האם התכנית עוברת לדיון או חוזרת לתיקונים?" },
-    25: { title: "פרסום בעיתונות", type: "quiz", info: "פרסום ההפקדה ב-2 עיתונים יומיים.", question: "מהו זמן ההפקדה המינימלי להגשת התנגדויות? (60 ימים)" },
-    26: { title: "קבלת התנגדויות", type: "knowledge", info: "שלב שמיעת הציבור. כל נפגע רשאי להגיש התנגדות בכתב.", more: "התנגדות חייבת להיות מגובה בתצהיר עו\"ד." },
-    46: { title: "קלף הפתעה", type: "surprise", info: "אירוע בלתי צפוי בתהליך התכנוני.", more: "התגלה עץ עתיק שלא סומן בסקר - חזור למשבצת 18." },
-    50: { title: "אכלוס וסיום 🎉", type: "regular", info: "מזל טוב! השלמתם את מסלול התב\"ע." }
+    1: { title: "יוזמה ראשונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד.", more: "חובה לוודא שאין סתירה לתמ\"א.", bonus: "מי מוסמך לאשר תמ\"א? (הממשלה)" },
+    2: { title: "בדיקת תכניות בתוקף", type: "quiz", info: "בדיקת המדרג התכנוני.", question: "האם בעל קרקע פרטי רשאי ליזום תכנית מפורטת? (כן)" },
+    3: { title: "ייעוץ ראשוני", type: "knowledge", info: "פגישת פרה-רולינג.", more: "מטרתה לייצר ודאות תכנונית מוקדמת." },
+    6: { title: "איסוף מסמכים", type: "quiz", question: "לכמה זמן תקפה מפת מדידה? (6 חודשים)" },
+    11: { title: "בדיקת שלמות", type: "quiz", question: "כמה ימים מוקצבים לבדיקת תנאי סף? (14 ימי עבודה)" },
+    15: { title: "בדיקה מקדמית", type: "wheel", info: "דחייה / תיקונים / קידום." },
+    25: { title: "פרסום בעיתונות", type: "quiz", question: "כמה עיתונים יומיים חובה לפרסם? (שני עיתונים)" },
+    37: { title: "קליטת תכנית", type: "knowledge", info: "הזנה למערכת XPLAN לעיון הציבור." },
+    50: { title: "אכלוס וסיום 🎉", type: "regular", info: "השלמתם את מסלול התב\"ע!" }
   };
 
   const icons = { knowledge: "💡", quiz: "❓", wheel: "🎡", surprise: "🎁", regular: "📍" };
 
-  function getFileNameForCell(num) {
-    let s = stages.filter(st => num >= st.start).pop();
-    return `m${s.id}-${String(num - s.start + 1).padStart(2, '0')}.jpeg`;
+  function initBoard() {
+    const container = document.getElementById('boardContainer'); container.innerHTML = '';
+    const ts = new Date().getTime();
+    for(let r=0; r<5; r++) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
+      for(let c=1; c<=10; c++) {
+        const num = (r * 10) + c;
+        const cell = document.createElement('div');
+        const data = gameData[num];
+        cell.className = `cell ${data ? 'type-'+data.type : ''}`;
+        cell.id = `cell-${num}`;
+        cell.onclick = () => openCellInfo(num);
+        
+        // טעינה פשוטה לפי מספר המשבצת - המספר שב-GitHub
+        cell.style.backgroundImage = `url('images/${num}.jpeg?v=${ts}')`;
+        
+        cell.innerHTML = `
+          <div class="cell-num">${num}</div>
+          <div style="position:absolute; top:3px; left:5px;">${icons[data?.type]||""}</div>
+          <div class="cell-title">${data?.title || "שלב תכנוני"}</div>
+        `;
+        rowDiv.appendChild(cell);
+      }
+      container.appendChild(rowDiv);
+    }
   }
 
   function openCellInfo(num) {
@@ -97,28 +119,22 @@
 
   function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
 
-  function initBoard() {
-    const container = document.getElementById('boardContainer'); container.innerHTML = '';
-    const ts = new Date().getTime();
-    for(let r=0; r<5; r++) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const cell = document.createElement('div');
-        cell.className = `cell ${gameData[num] ? 'type-'+gameData[num].type : ''}`;
-        cell.id = `cell-${num}`;
-        cell.onclick = () => openCellInfo(num);
-        cell.style.backgroundImage = `url('images/${getFileNameForCell(num)}?v=${ts}')`;
-        cell.innerHTML = `<div class="cell-num">${num}</div><div style="position:absolute; top:3px; left:5px;">${icons[gameData[num]?.type]||"" }</div><div class="cell-title">${gameData[num]?.title || ""}</div>`;
-        rowDiv.appendChild(cell);
-      }
-      container.appendChild(rowDiv);
-    }
+  function listenPlayers() {
+    db.ref('players').on('value', s => {
+      const ps = s.val() || {};
+      document.querySelectorAll('.pawn').forEach(p => p.remove());
+      Object.keys(ps).forEach(id => {
+        const p = ps[id]; const pawn = document.createElement('div');
+        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        document.body.appendChild(pawn);
+        const cell = document.getElementById(`cell-${p.pos + 1}`);
+        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px"; }
+      });
+    });
   }
 
   db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
-  initBoard();
+  initBoard(); listenPlayers();
   new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 90, height: 90 });
 </script>
 </body>
