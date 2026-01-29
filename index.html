@@ -1,141 +1,40 @@
-<!doctype html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>🏙️ לוח תכנון העיר - ארז ברוכי</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
-    .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
-    .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
-    .board-row { display: flex; flex: 1; gap: 8px; }
-    .row-reverse { flex-direction: row-reverse; }
-    .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); cursor: pointer; transition: 0.2s; }
-    .cell:hover { transform: scale(1.03); z-index: 10; border-color: var(--blue); }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px 2px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
-    /* פסים צבעוניים לפי סוג משבצת מהמחקר */
-    .type-knowledge { border-left: 5px solid var(--blue); }
-    .type-quiz { border-left: 5px solid var(--green); }
-    .type-wheel { border-left: 5px solid var(--gold); }
-    .type-surprise { border-left: 5px solid var(--red); }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 40px; border-radius: 20px; border: 3px solid var(--blue); width: 680px; text-align: center; position: relative; }
-    .close-btn { position: absolute; top: 15px; left: 15px; background: var(--gold); color: black; border: none; padding: 8px 15px; cursor: pointer; border-radius: 8px; font-weight: bold; }
-    .pawn { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; z-index: 100; transition: 0.6s ease; border: 2px solid #000; font-size: 1.6rem; box-shadow: 0 5px 10px #000; }
-  </style>
-</head>
-<body>
-
-<div id="gameScreen" class="main-layout">
-  <div class="board-section" id="boardContainer"></div>
-  <div class="sidebar">
-    <h2 style="color:var(--blue); border-bottom:2px solid var(--blue); padding-bottom:10px;">🏙️ מסלול התב"ע</h2>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <div id="qrcode" style="background:white; padding:10px; border-radius:10px; align-self:center; margin-top:10px;"></div>
-  </div>
-</div>
-
-<div id="infoModal" class="modal">
-  <div class="modal-content"><button class="close-btn" onclick="closeModal()">חזור X</button><div id="modalBody"></div></div>
-</div>
-
 <script>
-  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
-  firebase.initializeApp(config);
-  const db = firebase.database();
+  // ... (הגדרות Firebase ו-initBoard נשארות זהות) ...
 
-  // הגדרת השלבים הסטטוטוריים מהמחקר שלך
-  const stages = [
-    { id: 1, start: 1, name: "יוזמה והיתכנות" },
-    { id: 2, start: 6, name: "הכנה והגשה" },
-    { id: 3, start: 16, name: "בדיקות ותיאומים" },
-    { id: 4, start: 23, name: "הפקדה והתנגדויות" },
-    { id: 5, start: 34, name: "אישור ותוקף" }
-  ];
-
-  // תוכן המשבצות המלא מהמחקר
-  const gameData = {
-    1: { title: "יוזמה ראשונית", type: "knowledge", info: "הולדת רעיון תכנוני לשינוי ייעוד.", more: "חובה לוודא שאין סתירה לתמ\"א.", bonus: "מי מוסמך לאשר תמ\"א? (הממשלה)" },
-    2: { title: "בדיקת תכניות בתוקף", type: "quiz", info: "בדיקת המדרג התכנוני.", question: "האם בעל קרקע פרטי רשאי ליזום תכנית מפורטת? (כן)" },
-    3: { title: "ייעוץ ראשוני", type: "knowledge", info: "פגישת פרה-רולינג.", more: "מטרתה לייצר ודאות תכנונית מוקדמת." },
-    6: { title: "איסוף מסמכים", type: "quiz", question: "לכמה זמן תקפה מפת מדידה? (6 חודשים)" },
-    11: { title: "בדיקת שלמות", type: "quiz", question: "כמה ימים מוקצבים לבדיקת תנאי סף? (14 ימי עבודה)" },
-    15: { title: "בדיקה מקדמית", type: "wheel", info: "דחייה / תיקונים / קידום." },
-    25: { title: "פרסום בעיתונות", type: "quiz", question: "כמה עיתונים יומיים חובה לפרסם? (שני עיתונים)" },
-    37: { title: "קליטת תכנית", type: "knowledge", info: "הזנה למערכת XPLAN לעיון הציבור." },
-    50: { title: "אכלוס וסיום 🎉", type: "regular", info: "השלמתם את מסלול התב\"ע!" }
-  };
-
-  const icons = { knowledge: "💡", quiz: "❓", wheel: "🎡", surprise: "🎁", regular: "📍" };
-
-  function initBoard() {
-    const container = document.getElementById('boardContainer'); container.innerHTML = '';
-    const ts = new Date().getTime();
-    for(let r=0; r<5; r++) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const cell = document.createElement('div');
-        const data = gameData[num];
-        cell.className = `cell ${data ? 'type-'+data.type : ''}`;
-        cell.id = `cell-${num}`;
-        cell.onclick = () => openCellInfo(num);
-        
-        // טעינה פשוטה לפי מספר המשבצת - המספר שב-GitHub
-        cell.style.backgroundImage = `url('images/${num}.jpeg?v=${ts}')`;
-        
-        cell.innerHTML = `
-          <div class="cell-num">${num}</div>
-          <div style="position:absolute; top:3px; left:5px;">${icons[data?.type]||""}</div>
-          <div class="cell-title">${data?.title || "שלב תכנוני"}</div>
-        `;
-        rowDiv.appendChild(cell);
+  function listenGame() {
+    db.ref('game').on('value', s => {
+      const g = s.val();
+      if(g.activeCell) {
+        showStatutoryModal(g.activeCell, g.selection);
+      } else {
+        closeModal();
       }
-      container.appendChild(rowDiv);
-    }
-  }
-
-  function openCellInfo(num) {
-    const data = gameData[num];
-    const body = document.getElementById('modalBody');
-    body.innerHTML = `
-      <div style="font-size:3rem;">${icons[data?.type]||"📍"}</div>
-      <h2 style="color:var(--gold);">משבצת ${num}</h2>
-      <h1 style="color:var(--blue); margin-bottom:20px;">${data?.title || "שלב תכנוני"}</h1>
-      <div style="font-size:1.3rem; text-align:right; background:rgba(255,255,255,0.05); padding:25px; border-radius:15px; line-height:1.6;">
-        ${data?.info ? `<b>תיאור:</b> ${data.info}<br><br>` : ""}
-        ${data?.more ? `<b>מידע מקצועי מורחב:</b><br>${data.more}<br><br>` : ""}
-        ${data?.question ? `<div style="border:2px dashed var(--green); padding:15px; border-radius:10px;"><b>❓ שאלה:</b> ${data.question}</div>` : ""}
-        ${data?.bonus ? `<div style="border:2px dashed var(--gold); padding:15px; border-radius:10px; margin-top:10px;"><b>🌟 בונוס:</b> ${data.bonus}</div>` : ""}
-      </div>`;
-    document.getElementById('infoModal').style.display = 'flex';
-  }
-
-  function closeModal() { document.getElementById('infoModal').style.display = 'none'; }
-
-  function listenPlayers() {
-    db.ref('players').on('value', s => {
-      const ps = s.val() || {};
-      document.querySelectorAll('.pawn').forEach(p => p.remove());
-      Object.keys(ps).forEach(id => {
-        const p = ps[id]; const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
-        document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px"; }
-      });
     });
   }
 
-  db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} });
-  initBoard(); listenPlayers();
-  new QRCode(document.getElementById("qrcode"), { text: window.location.href.replace('index.html', 'play.html'), width: 90, height: 90 });
+  function showStatutoryModal(num, selection) {
+    const data = gameData[num];
+    const body = document.getElementById('modalBody');
+    let optionsHtml = "";
+    
+    if(data.options) {
+      optionsHtml = `<div class="options-grid">` + 
+        data.options.map((opt, i) => {
+          let style = "";
+          if(selection === i) {
+            style = (i === data.correct) ? "background:var(--green); border-color:white;" : "background:var(--red); border-color:white;";
+          }
+          return `<div class="opt-box" style="${style}">${String.fromCharCode(65 + i)}. ${opt}</div>`;
+        }).join('') + `</div>`;
+    }
+
+    body.innerHTML = `
+      <h2 style="color:var(--gold);">שלב ${num}: ${data.title}</h2>
+      <div class="modal-info">${data.info}</div>
+      <div class="modal-more">${data.more || ""}</div>
+      <div class="modal-question"><b>השאלה:</b> ${data.question}</div>
+      ${optionsHtml}
+    `;
+    document.getElementById('infoModal').style.display = 'flex';
+  }
 </script>
-</body>
-</html>
