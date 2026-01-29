@@ -14,22 +14,18 @@
     .row-reverse { flex-direction: row-reverse; }
     .cell { flex: 1; border-radius: 8px; border: 2px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
     .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; text-shadow: 1px 1px 2px black; z-index: 10; }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; line-height: 1.1; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; min-height: 25px; display: flex; align-items: center; justify-content: center; }
     .sidebar { flex: 1.2; background: rgba(15, 23, 42, 0.98); border-right: 3px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    
     .overlay { position: fixed; inset: 0; z-index: 4000; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); }
     .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 500px; }
-    
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 3000; }
     .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; }
-    
     .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; box-shadow: 0 4px 8px black; }
-    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-green { background: var(--green); color: black; }
     .btn-red { background: var(--red); color: white; margin-top: auto; }
-    
-    .qr-img { background: white; padding: 10px; border-radius: 10px; margin: 20px auto; display: block; }
     .lobby-player-tag { background: rgba(56, 189, 248, 0.2); border: 1px solid var(--blue); padding: 8px 15px; border-radius: 10px; margin: 5px; font-weight: bold; }
+    .qr-img { background: white; padding: 10px; border-radius: 15px; margin: 20px auto; border: 4px solid var(--blue); }
   </style>
 </head>
 <body>
@@ -37,16 +33,14 @@
 <div id="lobbyOverlay" class="overlay">
   <div class="overlay-box">
     <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
-    <div id="qrContainer">
-        <img id="lobbyQR" class="qr-img" width="160" height="160" alt="סרוק להצטרפות">
-    </div>
+    <img src="images/qr.png" class="qr-img" width="160" height="160" alt="סרוק להצטרפות">
     <div id="lobbyPlayerList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin-bottom:20px; color: var(--gold); min-height: 50px;">ממתין לקבוצות...</div>
     <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
   </div>
 </div>
 
 <div id="endOverlay" class="overlay" style="background-image: url('images/end.jpeg'); display: none;">
-  <div class="overlay-box" style="border-color: var(--gold);">
+  <div class="overlay-box">
     <h1 style="color: var(--gold); font-size: 3rem;">סיכום המהלכים</h1>
     <div id="finalScores"></div>
     <button class="btn" style="background: white; color: black; margin-top:20px;" onclick="resetSystem()">🔄 חזור ללובי</button>
@@ -59,7 +53,7 @@
     <div id="diceBox" style="font-size: 4rem; text-align: center; margin-bottom: 10px;">🎲</div>
     <h3 style="color:var(--blue); border-bottom: 1px solid var(--blue); padding-bottom: 5px;">קבוצות בשטח</h3>
     <div id="playersStatusList" style="flex:1; overflow-y:auto;"></div>
-    <img id="sidebarQR" class="qr-img" width="100" height="100" style="margin-top: 10px;">
+    <img src="images/qr.png" width="100" height="100" style="margin: 10px auto; border-radius: 8px; border: 2px solid white;">
     <button class="btn btn-red" onclick="forceEnd()">🛑 סיום כפוי</button>
   </div>
 </div>
@@ -69,109 +63,4 @@
 </div>
 
 <script>
-  // הגדרות Firebase
-  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
-  firebase.initializeApp(config);
-  const db = firebase.database();
-
-  const gameData = { 1: { title: "יוזמה רעיונית", type: "knowledge" }, 50: { title: "אכלוס וסיום 🎉", type: "knowledge" } };
-  const diceIcons = ["🎲", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-
-  function initBoard() {
-    const container = document.getElementById('boardContainer');
-    if(container.children.length > 0) return;
-    for(let r=0; r<5; r++) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const cell = document.createElement('div');
-        cell.className = `cell ${gameData[num]?.type ? 'type-'+gameData[num].type : ''}`;
-        cell.id = `cell-${num}`;
-        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
-        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${gameData[num]?.title || "שלב תכנוני"}</div>`;
-        rowDiv.appendChild(cell);
-      }
-      container.appendChild(rowDiv);
-    }
-  }
-
-  function listenSystem() {
-    db.ref('game').on('value', snap => {
-      const g = snap.val() || { state: 'lobby', turn: 0 };
-      document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
-      document.getElementById('endOverlay').style.display = (g.state === 'finished') ? 'flex' : 'none';
-      document.getElementById('gameScreen').style.display = (g.state === 'playing' || g.state === 'moving') ? 'flex' : 'none';
-      
-      if(g.state === 'playing' || g.state === 'moving') {
-        initBoard();
-        if(g.lastRoll) document.getElementById('diceBox').innerText = diceIcons[g.lastRoll] || "🎲";
-        if(g.state === 'moving' && g.lastRoll) handleMovement(g.turn, g.lastRoll);
-      }
-
-      const modal = document.getElementById('infoModal');
-      if(g.activeCell) {
-        modal.style.display = 'flex';
-        document.getElementById('modalBody').innerHTML = `<h2>משבצת ${g.activeCell}</h2><h1>${gameData[g.activeCell]?.title || "שלב סטטוטורי"}</h1><button class="btn btn-green" onclick="closeCell()">סגור וסיים תור X</button>`;
-      } else { modal.style.display = 'none'; }
-    });
-
-    db.ref('players').on('value', snap => {
-      const ps = snap.val() || {};
-      const ids = Object.keys(ps);
-      
-      const lobbyList = document.getElementById('lobbyPlayerList');
-      lobbyList.innerHTML = ids.length > 0 ? ids.map(id => `<div class="lobby-player-tag" style="border-color:${ps[id].color}">${ps[id].avatar} ${ps[id].name}</div>`).join('') : "ממתין לקבוצות...";
-
-      document.querySelectorAll('.pawn').forEach(p => p.remove());
-      document.getElementById('playersStatusList').innerHTML = ids.map(id => {
-        const p = ps[id];
-        const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
-        document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) {
-          const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
-        }
-        return `<div style="background:var(--card); padding:10px; border-radius:8px; border-right:5px solid ${p.color}; margin-bottom:5px;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
-      }).join('');
-    });
-  }
-
-  async function handleMovement(turnIdx, roll) {
-    const pSnap = await db.ref('players').once('value');
-    const players = pSnap.val();
-    const ids = Object.keys(players);
-    const myId = ids[turnIdx];
-    if(!myId) return;
-    const newPos = Math.min((players[myId].pos || 0) + roll, 49);
-    await db.ref('players/' + myId).update({ pos: newPos });
-    await db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
-  }
-
-  function closeCell() {
-    db.ref('game').once('value', s => {
-      db.ref('players').once('value', ps => {
-        const ids = Object.keys(ps.val() || {});
-        db.ref('game').update({ activeCell: null, turn: (s.val().turn + 1) % ids.length, lastRoll: 0 });
-      });
-    });
-  }
-
-  function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
-  function forceEnd() { db.ref('game').update({ state: 'finished' }); }
-  function resetSystem() { db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(() => location.reload()); }
-
-  // הברקוד החדש והחסין (Google API)
-  function setupQRCodes() {
-    const studentUrl = window.location.href.split('index.html')[0].replace(/\/$/, "") + "/play.html";
-    const qrSrc = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(studentUrl)}`;
-    document.getElementById("lobbyQR").src = qrSrc;
-    document.getElementById("sidebarQR").src = qrSrc;
-  }
-
-  window.onload = () => { setupQRCodes(); listenSystem(); };
-</script>
-</body>
-</html>
+  const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "
