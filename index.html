@@ -2,51 +2,101 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - מסך מרצה</title>
+  <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=3.0"></script>
+  <script src="js/gameData.js?v=4.0"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    body { background: var(--bg); color: #e5f4ff; font-family: system-ui; overflow: hidden; margin: 0; }
+    :root { 
+      --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; 
+      --red: #ef4444; --green: #22c55e;
+      --stage-color: var(--blue);
+    }
+    
+    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: #e5f4ff; overflow: hidden; font-family: system-ui; }
+    
     .main-layout { display: grid; grid-template-columns: 320px 1fr; height: 100vh; gap: 15px; padding: 15px; }
-    .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5px; height: 100%; }
-    .cell { border-radius: 8px; border: 1px solid rgba(56,189,248,0.2); background-size: cover; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-size: 0.8rem; text-shadow: 0 0 3px black; }
-    .cell-title { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 0.6rem; text-align: center; padding: 3px 0; line-height: 1; }
-    .sidebar { background: #0f172a; border: 2px solid var(--blue); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 850px; text-align: right; }
-    .pawn { width: 40px; height: 40px; border-radius: 50%; position: absolute; z-index: 50; transition: 0.6s; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid white; box-shadow: 0 0 10px black; }
-    .opt { padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 5px 0; cursor: pointer; }
+    
+    /* עיצוב הלוח */
+    .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 1fr); gap: 8px; height: 100%; }
+    .cell { border-radius: 12px; border: 1px solid rgba(56,189,248,0.2); background-size: cover; position: relative; background-color: var(--card); transition: 0.3s; }
+    .cell-num { position: absolute; top: 5px; right: 8px; font-weight: bold; text-shadow: 0 0 5px black; }
+    .cell-title { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.85); font-size: 0.7rem; text-align: center; padding: 5px 0; border-radius: 0 0 12px 12px; height: 35px; display: flex; align-items: center; justify-content: center; }
+
+    /* מודאל משופר וענק */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); display: none; align-items: center; justify-content: center; z-index: 2000; }
+    .modal-content { 
+      background: var(--card); width: 95vw; height: 90vh; border-radius: 30px; 
+      border: 3px solid var(--stage-color); display: grid; grid-template-columns: 180px 1.2fr 1.5fr;
+      overflow: hidden; position: relative; box-shadow: 0 0 50px rgba(0,0,0,1);
+    }
+
+    /* פס התקדמות מטרו (צד ימין) */
+    .metro-line { 
+      background: rgba(0,0,0,0.3); border-left: 1px solid rgba(255,255,255,0.1);
+      display: flex; flex-direction: column; justify-content: space-around; padding: 40px 15px;
+    }
+    .metro-station { 
+      position: relative; padding-right: 35px; color: #64748b; font-size: 1.1rem; font-weight: bold;
+      transition: 0.4s; text-align: right;
+    }
+    .metro-station.active { color: var(--stage-color); transform: scale(1.1); }
+    .metro-station::after { 
+      content: ''; position: absolute; right: -5px; top: 8px; width: 18px; height: 18px; 
+      border-radius: 50%; background: #1e293b; border: 3px solid #475569; z-index: 2;
+    }
+    .metro-station.active::after { background: var(--stage-color); border-color: white; box-shadow: 0 0 15px var(--stage-color); }
+    .metro-station::before {
+      content: ''; position: absolute; right: 3px; top: 25px; width: 2px; height: 100%;
+      background: rgba(255,255,255,0.1); z-index: 1;
+    }
+    .metro-station:last-child::before { display: none; }
+
+    /* אזור תמונה ומידע */
+    .modal-image-sec { background-size: cover; background-position: center; border-left: 1px solid rgba(255,255,255,0.1); }
+    .modal-info-sec { padding: 40px; overflow-y: auto; display: flex; flex-direction: column; text-align: right; }
+    
+    .pawn { width: 45px; height: 45px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.8s; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; border: 3px solid white; box-shadow: 0 5px 15px black; }
+    
+    .opt-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.2s; font-size: 1.3rem; }
     .correct { background: var(--green) !important; color: black; font-weight: bold; }
     .wrong { background: var(--red) !important; color: white; }
-    .spin-anim { animation: spin 0.6s infinite linear; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    
+    .btn-finish { background: var(--green); color: black; padding: 20px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; border: none; cursor: pointer; margin-top: auto; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay" class="modal" style="display: flex;">
-  <div class="modal-content" style="text-align:center;">
-    <h1 style="color: var(--blue); font-size: 3rem;">🏙️ מסלול התב"ע</h1>
-    <div style="background:white; padding:10px; display:inline-block; border-radius:15px; margin:20px;"><img id="autoQR" width="180" height="180"></div>
-    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px;"></div>
-    <button onclick="startGame()" style="padding:15px 40px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer;">🚀 התחל משחק</button>
+  <div class="modal-content" style="grid-template-columns: 1fr; text-align: center; padding: 40px;">
+    <h1 style="font-size: 4rem; color: var(--blue);">🏙️ מסלול התב"ע</h1>
+    <div style="background:white; padding:15px; display:inline-block; border-radius:20px; margin:30px;"><img id="autoQR" width="220" height="220"></div>
+    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; font-size: 1.5rem;"></div>
+    <button onclick="startGame()" class="btn-finish" style="width: 300px; margin: 40px auto;">🚀 התחל משחק</button>
   </div>
 </div>
 
 <div class="main-layout">
-  <div class="sidebar">
-    <div id="dice" style="font-size: 4rem; text-align: center;">🎲</div>
-    <div id="playerStats" style="flex:1; overflow-y:auto; margin-top:20px;"></div>
-    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס מלא</button>
+  <div class="sidebar" style="background:#0f172a; padding:20px; border-left:2px solid var(--blue);">
+    <div id="dice" style="font-size: 5rem; text-align: center;">🎲</div>
+    <div id="playerStats" style="margin-top:30px; flex:1;"></div>
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס</button>
   </div>
   <div class="board" id="board"></div>
 </div>
 
 <div id="infoModal" class="modal">
-  <div id="modalBody" class="modal-content"></div>
+  <div id="modalContent" class="modal-content">
+    <div class="metro-line">
+      <div class="metro-station" id="stg1">1. יוזמה והיתכנות</div>
+      <div class="metro-station" id="stg2">2. הכנה והגשה</div>
+      <div class="metro-station" id="stg3">3. בדיקות ותנאים</div>
+      <div class="metro-station" id="stg4">4. הפקדה והתנגדויות</div>
+      <div class="metro-station" id="stg5">5. אישור ומימוש</div>
+    </div>
+    <div class="modal-image-sec" id="modalImg"></div>
+    <div class="modal-info-sec" id="modalInfo"></div>
+  </div>
 </div>
 
 <script>
@@ -55,19 +105,18 @@
   const db = firebase.database();
 
   function setupQR() {
-    const studentUrl = window.location.href.split('index.html')[0] + "play.html";
-    document.getElementById('autoQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
+    const url = window.location.href.split('index.html')[0] + "play.html";
+    document.getElementById('autoQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
   }
 
   function initBoard() {
-    if(!window.gameData) return setTimeout(initBoard, 300);
-    const b = document.getElementById('board');
-    b.innerHTML = '';
+    const b = document.getElementById('board'); b.innerHTML = '';
     for(let i=1; i<=50; i++) {
       const cell = document.createElement('div');
       cell.className = 'cell'; cell.id = `cell-${i}`;
       cell.style.backgroundImage = `url('images/${i}.jpeg')`;
-      cell.innerHTML = `<div class="cell-num">${i}</div><div class="cell-title">${window.gameData.cells[i]?.title || ""}</div>`;
+      const title = window.gameData?.cells[i]?.title || "שלב " + i;
+      cell.innerHTML = `<div class="cell-num">${i}</div><div class="cell-title">${title}</div>`;
       b.appendChild(cell);
     }
   }
@@ -76,75 +125,80 @@
     db.ref('game').on('value', snap => {
       const g = snap.val() || { state: 'lobby' };
       document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
-      if(g.lastRoll) document.getElementById('dice').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll] || "🎲";
       if(g.activeCell) showModal(g); else document.getElementById('infoModal').style.display = 'none';
     });
 
     db.ref('players').on('value', snap => {
       const ps = snap.val() || {};
-      const lobby = document.getElementById('lobbyList');
       const stats = document.getElementById('playerStats');
-      lobby.innerHTML = ''; stats.innerHTML = '';
+      const lobby = document.getElementById('lobbyList');
+      stats.innerHTML = ''; lobby.innerHTML = '';
       document.querySelectorAll('.pawn').forEach(p => p.remove());
 
       Object.keys(ps).forEach(id => {
         const p = ps[id];
-        lobby.innerHTML += `<div style="padding:5px 10px; background:${p.color}44; border:1px solid ${p.color}; border-radius:5px;">${p.icon} ${p.name}</div>`;
-        stats.innerHTML += `<div style="margin-bottom:8px; border-right:4px solid ${p.color}; padding-right:8px;">${p.icon} <b>${p.name}</b><br>משבצת ${p.pos+1}</div>`;
+        lobby.innerHTML += `<div style="padding:10px 20px; background:${p.color}44; border:2px solid ${p.color}; border-radius:15px;">${p.icon} ${p.name}</div>`;
+        stats.innerHTML += `<div style="border-right:5px solid ${p.color}; padding-right:10px; margin-bottom:15px;"><b>${p.name}</b><br>משבצת ${p.pos+1}</div>`;
         const pawn = document.createElement('div');
         pawn.className = 'pawn'; pawn.innerText = p.icon; pawn.style.background = p.color;
         document.body.appendChild(pawn);
         const cell = document.getElementById(`cell-${p.pos+1}`);
-        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top+5)+'px'; pawn.style.left = (r.left+5)+'px'; }
+        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top+10)+'px'; pawn.style.left = (r.left+10)+'px'; }
       });
     });
   }
 
   function showModal(g) {
     const data = window.gameData.cells[g.activeCell];
-    const body = document.getElementById('modalBody');
+    const stage = Math.ceil(g.activeCell / 10);
+    const colors = ["#38bdf8", "#8b5cf6", "#f59e0b", "#ef4444", "#22c55e"];
+    const stageColor = colors[stage-1];
+    
+    document.documentElement.style.setProperty('--stage-color', stageColor);
     document.getElementById('infoModal').style.display = 'flex';
+    document.getElementById('modalImg').style.backgroundImage = `url('images/${g.activeCell}.jpeg')`;
     
-    let html = `<div style="display:flex; gap:30px;">`;
-    html += `<div style="flex:1;"><img src="images/${g.activeCell}.jpeg" style="width:100%; border-radius:15px; border:2px solid var(--blue);"></div>`;
-    html += `<div style="flex:1.5;">`;
-    html += `<h2>משבצת ${g.activeCell}: ${data.title}</h2><p style="font-size:1.2rem;">${data.info || ""}</p>`;
-    
+    // עדכון פס מטרו
+    document.querySelectorAll('.metro-station').forEach((s, i) => {
+      s.classList.toggle('active', (i+1) === stage);
+    });
+
+    let html = `<h2 style="color:var(--stage-color); margin:0;">שלב ${stage}: ${data.title}</h2>`;
+    html += `<h1 style="font-size:3rem; margin:15px 0;">משבצת ${g.activeCell}</h1>`;
+    html += `<p style="font-size:1.6rem; line-height:1.6; background:rgba(255,255,255,0.03); padding:25px; border-radius:20px;">${data.info || ""}</p>`;
+
     if(data.type === 'quiz' || data.type === 'knowledge') {
-      html += `<div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:15px; margin-top:15px;">`;
-      html += `<h3>${data.question || "שאלה:"}</h3>`;
+      html += `<div style="margin-top:30px;"><h3 style="color:var(--gold); font-size:1.8rem;">${data.question || "שאלה מהוועדה:"}</h3>`;
+      html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px;">`;
       data.options?.forEach((opt, i) => {
         let cls = "";
         if(g.selection !== null && g.selection !== undefined) {
            if(i === data.correct) cls = "correct";
            else if(i === g.selection) cls = "wrong";
         }
-        html += `<div class="opt ${cls}" onclick="db.ref('game').update({selection:${i}})">${String.fromCharCode(65+i)}. ${opt}</div>`;
+        html += `<div class="opt-card ${cls}" onclick="db.ref('game').update({selection:${i}})">${String.fromCharCode(65+i)}. ${opt}</div>`;
       });
+      html += `</div>`;
       if(g.selection !== null && g.selection !== undefined) {
-        html += `<p style="margin-top:15px; color:var(--gold);"><b>הסבר:</b> ${data.explanation}</p>`;
+        html += `<div style="margin-top:25px; padding:20px; border-right:5px solid var(--gold); background:rgba(250,204,21,0.1); font-size:1.4rem;"><b>הסבר לימודי:</b> ${data.explanation}</div>`;
       }
       html += `</div>`;
-    } else if(data.type === 'wheel') {
-      html += `<div style="text-align:center;"><div class="wheel-box ${g.state==='wheeling'?'spin-anim':''}" style="font-size:5rem;">🎡</div>`;
-      if(g.wheelResult) html += `<h2 style="color:var(--gold);">${g.wheelResult}</h2>`;
-      html += `</div>`;
     }
-    
-    html += `<button onclick="closeTurn()" style="margin-top:20px; width:100%; padding:15px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer;">סיים תור והמשך ➔</button></div></div>`;
-    body.innerHTML = html;
+
+    html += `<button class="btn-finish" onclick="closeTurn()">סיום תור והמשך ➔</button>`;
+    document.getElementById('modalInfo').innerHTML = html;
   }
 
-  function startGame() { db.ref('game').set({ state: 'playing', turn: 0 }); }
+  function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
   function closeTurn() { 
     db.ref('game').once('value', s => {
       db.ref('players').once('value', ps => {
         const ids = Object.keys(ps.val() || {});
-        db.ref('game').update({ activeCell: null, selection: null, wheelResult: null, turn: (s.val().turn + 1) % ids.length });
+        db.ref('game').update({ activeCell: null, selection: null, turn: (s.val().turn + 1) % ids.length });
       });
     });
   }
-  function resetSystem() { if(confirm("איפוס מלא?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(()=>location.reload()); }
+  function resetSystem() { if(confirm("לאפס?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(()=>location.reload()); }
 
   setupQR(); initBoard(); listen();
 </script>
