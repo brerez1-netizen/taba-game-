@@ -5,7 +5,7 @@
   <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=final"></script>
+  <script src="js/gameData.js?v=final_fix"></script>
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; --yellow: #eab308; }
     html, body { height: 100%; margin: 0; background: var(--bg); color: #e5f4ff; overflow: hidden; font-family: system-ui; }
@@ -24,10 +24,8 @@
     .wrong { background: var(--red) !important; color: white; }
     .timer-bar { height: 10px; background: var(--blue); width: 100%; position: absolute; top: 0; z-index: 5; }
     .sidebar { background: #0f172a; border-left: 2px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    
-    /* גלגל המזל */
     .wheel-box { position: relative; width: 320px; height: 320px; margin: 20px auto; }
-    #wheelSVG { width: 100%; height: 100%; transition: transform 3s cubic-bezier(0.2, 0, 0.2, 1); transform: rotate(0deg); }
+    #wheelSVG { width: 100%; height: 100%; transition: transform 3s cubic-bezier(0.2, 0, 0.2, 1); }
     .wheel-arrow { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid white; z-index: 10; filter: drop-shadow(0 4px 4px black); }
   </style>
 </head>
@@ -37,8 +35,8 @@
   <div class="modal-content" style="grid-template-columns: 1fr; text-align: center; padding: 40px;">
     <h1 style="font-size: 4.5rem; color: var(--blue);">🏙️ מסלול התב"ע</h1>
     <div style="background:white; padding:15px; display:inline-block; border-radius:20px; margin:20px;"><img id="autoQR" width="220" height="220"></div>
-    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; margin-bottom: 20px;"></div>
-    <button onclick="startGame()" style="padding:25px 80px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size: 2rem;">🚀 התחל דיון</button>
+    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; margin-bottom: 20px;">טוען שחקנים...</div>
+    <button onclick="startGame()" style="padding:25px 80px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size: 2rem;">🚀 התחל משחק</button>
   </div>
 </div>
 
@@ -64,7 +62,6 @@
 <div id="finishOverlay" class="modal">
     <div class="modal-content" style="grid-template-columns: 1fr; text-align: center; padding: 50px;">
         <h1 style="font-size: 4rem; color: var(--gold);">🎉 הדיון הסתיים!</h1>
-        <h2>דירוג צוותי התכנון:</h2>
         <div id="finalRanking" style="font-size: 2.5rem; margin-top: 30px;"></div>
         <button onclick="resetFullGame()" style="margin-top: 50px; padding: 20px 60px; background: var(--blue); border:none; border-radius:20px; font-weight:bold; cursor:pointer;">משחק חדש 🔄</button>
     </div>
@@ -76,9 +73,12 @@
   const db = firebase.database();
 
   function setupQR() {
-    const url = window.location.href.split(/[?#]/)[0].replace('index.html', '') + "play.html";
-    document.getElementById('autoQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(url)}`;
-    const sideQR = document.getElementById('sideQR'); if(sideQR) sideQR.src = document.getElementById('autoQR').src;
+    const origin = window.location.origin;
+    const path = window.location.pathname;
+    const directory = path.substring(0, path.lastIndexOf('/'));
+    const finalUrl = origin + directory + "/play.html";
+    document.getElementById('autoQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(finalUrl)}`;
+    console.log("Barcode Points to:", finalUrl);
   }
 
   function initBoard() {
@@ -93,7 +93,7 @@
   }
 
   function resetFullGame() {
-    if(confirm("לאפס את כל המשחק?")) db.ref('/').set({ game: { state: 'lobby', turn: 0, activeCell: null, selection: null }, players: {} }).then(() => location.reload());
+    if(confirm("לאפס הכל?")) db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} }).then(() => location.reload());
   }
 
   function startGame() {
@@ -101,7 +101,7 @@
         const ps = snap.val() || {}; const ids = Object.keys(ps);
         if(ids.length === 0) return alert("אף קבוצה לא הצטרפה!");
         for(let i=ids.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i], ids[j]]=[ids[j], ids[i]]; }
-        db.ref('game').set({ state: 'playing', turn: 0, turnOrder: ids, activeCell: null, selection: null });
+        db.ref('game').set({ state: 'playing', turn: 0, turnOrder: ids, activeCell: null });
     });
   }
 
@@ -125,17 +125,16 @@
       sortedIds.forEach(id => {
         const p = ps[id];
         lobby.innerHTML += `<div style="padding:10px 20px; background:${p.color}44; border:2px solid ${p.color}; border-radius:12px;">${p.icon} ${p.name}</div>`;
-        stats.innerHTML += `<div style="padding:12px; border-right:5px solid ${p.color}; background:rgba(255,255,255,0.05); margin-bottom:10px; border-radius:10px;"><b>${p.name}</b><br><span style="color:var(--gold);">ניקוד: ${p.score || 0}</span> | משבצת ${p.pos < 0 ? 'בהתחלה' : p.pos+1}</div>`;
+        stats.innerHTML += `<div style="padding:12px; border-right:5px solid ${p.color}; background:rgba(255,255,255,0.05); margin-bottom:10px; border-radius:10px;"><b>${p.name}</b><br><span>${p.score || 0} נק'</span> | ${p.pos < 0 ? 'בלובי' : 'משבצת ' + (p.pos+1)}</div>`;
         if(p.pos >= 0) {
             const pawn = document.createElement('div'); pawn.className = 'pawn'; pawn.innerText = p.icon; pawn.style.background = p.color;
             document.body.appendChild(pawn); const cell = document.getElementById(`cell-${p.pos+1}`);
             if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top+5)+'px'; pawn.style.left = (r.left+5)+'px'; }
         }
       });
-
       if(sortedIds.length > 0 && sortedIds.every(id => ps[id].pos >= 49)) {
           db.ref('game').update({ state: 'finished' });
-          document.getElementById('finalRanking').innerHTML = sortedIds.map((id, i) => `<div style="margin:10px 0;">#${i+1} ${ps[id].icon} ${ps[id].name} - ${ps[id].score} נקודות</div>`).join('');
+          document.getElementById('finalRanking').innerHTML = sortedIds.map((id, i) => `<div>#${i+1} ${ps[id].icon} ${ps[id].name} - ${ps[id].score} נקודות</div>`).join('');
       }
     });
   }
@@ -147,11 +146,11 @@
     document.getElementById('modalImg').style.backgroundImage = `url('images/${g.activeCell}.jpeg')`;
     document.querySelectorAll('.metro-station').forEach((s, i) => s.classList.toggle('active', (i+1) === stage));
 
-    if(data.type === 'quiz' && !g.startTime) { db.ref('game').update({ startTime: Date.now() }); startTimer(); }
+    if((data.type === 'quiz') && !g.startTime) { db.ref('game').update({ startTime: Date.now() }); startTimer(); }
 
     let html = `<h2 style="color:var(--blue); margin:0;">משבצת ${g.activeCell}</h2><h1>${data.title}</h1><p style="font-size:1.6rem; line-height:1.6;">${data.info}</p>`;
     if(data.type === 'quiz') {
-      html += `<div style="margin-top:25px; background:rgba(255,255,255,0.03); padding:20px; border-radius:20px;"><h3>${data.question}</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px;">`;
+      html += `<div style="margin-top:25px; background:rgba(255,255,255,0.03); padding:20px; border-radius:20px;"><h3>${data.question}</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
       const labels = ['א', 'ב', 'ג', 'ד'];
       data.options.forEach((opt, i) => {
         let cls = ""; if(g.selection !== null && g.selection !== undefined) { if(i === data.correct) cls = "correct"; else if(i === g.selection) cls = "wrong"; }
@@ -159,8 +158,7 @@
       });
       html += `</div>${(g.selection !== null && g.selection !== undefined) ? `<p style="color:var(--gold); margin-top:20px; font-size:1.4rem;"><b>הסבר לימודי:</b> ${data.explanation}</p>` : ''}</div>`;
     } else if(data.type === 'wheel') {
-        html += `<div class="wheel-box"><div class="wheel-arrow"></div>
-            <svg id="wheelSVG" viewBox="0 0 100 100">
+        html += `<div class="wheel-box"><div class="wheel-arrow"></div><svg id="wheelSVG" viewBox="0 0 100 100">
                 <path d="M50 50 L50 0 A50 50 0 0 1 93.3 25 Z" fill="var(--green)"/>
                 <path d="M50 50 L93.3 25 A50 50 0 0 1 93.3 75 Z" fill="var(--yellow)"/>
                 <path d="M50 50 L93.3 75 A50 50 0 0 1 50 100 Z" fill="var(--red)"/>
