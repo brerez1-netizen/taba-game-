@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>📱 שלט סטודנט - מסלול התב"ע</title>
+  <title>📱 שלט סטודנט - מסלול התב\"ע</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script src="js/gameData.js?v=final"></script>
@@ -33,21 +33,9 @@
 <div id="gameView" style="display:none;">
   <h1 id="myName" style="font-size: 2.5rem; margin: 0;">...</h1>
   <div id="status-msg" style="color:var(--blue); font-weight:bold; margin: 25px 0; font-size: 1.8rem;"></div>
-  
-  <button id="rollBtn" class="btn" style="display:none; background:var(--green); box-shadow: 0 6px 0 #166534;" onclick="roll()">🎲 הטל קובייה</button>
-  
-  <div id="quizArea" style="display: none;">
-    <div class="opt-grid">
-      <button class="opt-btn" onclick="sendAns(0)">א</button>
-      <button class="opt-btn" onclick="sendAns(1)">ב</button>
-      <button class="opt-btn" onclick="sendAns(2)">ג</button>
-      <button class="opt-btn" onclick="sendAns(3)">ד</button>
-    </div>
-  </div>
-
-  <div id="wheelArea" style="display: none;">
-    <button class="btn" style="background:var(--gold); box-shadow: 0 6px 0 #b45309; padding: 60px 10px; font-size: 2.5rem;" onclick="spin()">🎡 סובב גלגל!</button>
-  </div>
+  <button id="rollBtn" class="btn" style="display:none; background:var(--green);" onclick="roll()">🎲 הטל קובייה</button>
+  <div id="quizArea" style="display: none;"><div class="opt-grid"><button class="opt-btn" onclick="sendAns(0)">א</button><button class="opt-btn" onclick="sendAns(1)">ב</button><button class="opt-btn" onclick="sendAns(2)">ג</button><button class="opt-btn" onclick="sendAns(3)">ד</button></div></div>
+  <div id="wheelArea" style="display: none;"><button class="btn" style="background:var(--gold); box-shadow: 0 6px 0 #b45309; padding: 60px 10px; font-size: 2.5rem;" onclick="spin()">🎡 סובב גלגל!</button></div>
 </div>
 
 <script>
@@ -81,7 +69,7 @@
         const ps = psSnap.val() || {}; const me = ps[myId]; if(!me) return;
         const isMyTurn = g.turnOrder && g.turnOrder[g.turn] === myId;
         document.getElementById('myName').innerText = me.icon + " " + me.name + " (" + (me.score || 0) + ")";
-        document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! ענה מהר 🌟" : "המתן לתור הקבוצה הבאה...";
+        document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! 🌟" : "המתן לתור הקבוצה הבאה...";
         const data = window.gameData.cells[g.activeCell];
         document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
         document.getElementById('quizArea').style.display = (isMyTurn && data?.type === 'quiz' && (g.selection === null || g.selection === undefined)) ? 'block' : 'none';
