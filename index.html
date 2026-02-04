@@ -5,9 +5,9 @@
   <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=final"></script>
+  <script src="js/gameData.js?v=9.1"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; --yellow: #eab308; }
     html, body { height: 100%; margin: 0; background: var(--bg); color: #e5f4ff; overflow: hidden; font-family: system-ui; }
     .main-layout { display: grid; grid-template-columns: 350px 1fr; height: 100vh; gap: 15px; padding: 15px; }
     .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 1fr); gap: 6px; height: 100%; }
@@ -19,29 +19,35 @@
     .metro-station { text-align: right; color: #64748b; font-weight: bold; font-size: 0.9rem; }
     .metro-station.active { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
     .pawn { width: 44px; height: 44px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.8s; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; border: 3px solid white; box-shadow: 0 5px 15px black; }
-    .opt-btn { padding: 18px; border-radius: 15px; border: 2px solid rgba(255,255,255,0.1); margin: 6px; cursor: pointer; transition: 0.2s; font-size: 1.3rem; }
+    .opt-btn { padding: 18px; border-radius: 15px; border: 2px solid rgba(255,255,255,0.1); margin: 6px; cursor: pointer; transition: 0.2s; font-size: 1.4rem; }
     .correct { background: var(--green) !important; color: black; font-weight: bold; }
     .wrong { background: var(--red) !important; color: white; }
     .timer-bar { height: 10px; background: var(--blue); width: 100%; position: absolute; top: 0; z-index: 5; }
     .sidebar { background: #0f172a; border-left: 2px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
+    
+    /* עיצוב גלגל המזל החדש */
+    .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
+    #wheelSVG { width: 100%; height: 100%; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); }
+    .wheel-pointer { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 40px; height: 40px; fill: white; filter: drop-shadow(0 0 5px black); z-index: 10; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay" class="modal" style="display: flex;">
   <div class="modal-content" style="grid-template-columns: 1fr; text-align: center; padding: 40px;">
-    <h1 style="font-size: 4.5rem; color: var(--blue);">🏙️ מסלול התב\"ע</h1>
+    <h1 style="font-size: 4.5rem; color: var(--blue);">🏙️ מסלול התב"ע</h1>
     <div style="background:white; padding:15px; display:inline-block; border-radius:20px; margin:20px;"><img id="autoQR" width="220" height="220"></div>
     <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:15px; margin-bottom: 20px;"></div>
-    <button onclick="startGame()" style="padding:25px 80px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size: 2rem;">🚀 התחל דיון (ערבוב תור)</button>
+    <button onclick="startGame()" style="padding:25px 80px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size: 2rem;">🚀 התחל דיון</button>
   </div>
 </div>
 
 <div class="main-layout">
   <div class="sidebar">
     <div id="dice" style="font-size: 5.5rem; text-align: center; margin-bottom: 20px;">🎲</div>
-    <h3 style="color:var(--gold); border-bottom: 2px solid var(--blue); padding-bottom: 10px;">דירוג קבוצות</h3>
+    <h3 style="color:var(--gold); border-bottom: 2px solid var(--blue); padding-bottom: 10px; margin-bottom: 15px;">דירוג קבוצות</h3>
     <div id="playerStats" style="flex:1; overflow-y:auto;"></div>
+    <img id="sideQR" width="80" height="80" style="margin: 20px auto; border: 2px solid white; border-radius: 10px;">
     <button onclick="resetFullGame()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold; margin-top: auto; padding:10px;">איפוס עמוק 🛑</button>
   </div>
   <div class="board" id="board"></div>
@@ -50,11 +56,7 @@
 <div id="infoModal" class="modal">
   <div class="timer-bar" id="timerBar"></div>
   <div class="modal-content">
-    <div class="metro-line">
-        <div class="metro-station" id="stg1">1. יוזמה</div><div class="metro-station" id="stg2">2. הגשה</div>
-        <div class="metro-station" id="stg3">3. בדיקות</div><div class="metro-station" id="stg4">4. הפקדה</div>
-        <div class="metro-station" id="stg5">5. אישור</div>
-    </div>
+    <div class="metro-line"><div class="metro-station" id="stg1">1. יוזמה</div><div class="metro-station" id="stg2">2. הגשה</div><div class="metro-station" id="stg3">3. בדיקות</div><div class="metro-station" id="stg4">4. הפקדה</div><div class="metro-station" id="stg5">5. אישור</div></div>
     <div id="modalImg" style="background-size:cover; background-position:center;"></div>
     <div id="modalInfo" style="padding:45px; text-align:right; overflow-y:auto;"></div>
   </div>
@@ -82,9 +84,7 @@
   }
 
   function resetFullGame() {
-    if(confirm("זה ימחק הכל ויחזיר ללובי. בטוח?")) {
-        db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} }).then(() => location.reload());
-    }
+    if(confirm("למחוק הכל?")) db.ref('/').set({ game: { state: 'lobby', turn: 0 }, players: {} }).then(() => location.reload());
   }
 
   function startGame() {
@@ -102,6 +102,10 @@
       document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
       if(g.activeCell) showModal(g); else { document.getElementById('infoModal').style.display = 'none'; clearInterval(window.quizTimer); }
       if(g.lastRoll) document.getElementById('dice').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll] || "🎲";
+      if(g.state === 'wheeling' && g.wheelRotation) {
+          const wheel = document.getElementById('wheelSVG');
+          if(wheel) wheel.style.transform = `rotate(${g.wheelRotation}deg)`;
+      }
     });
 
     db.ref('players').on('value', snap => {
@@ -132,21 +136,30 @@
       html += `<div style="margin-top:25px; background:rgba(255,255,255,0.03); padding:20px; border-radius:20px;"><h3>${data.question}</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px;">`;
       data.options.forEach((opt, i) => {
         let cls = ""; if(g.selection !== null && g.selection !== undefined) { if(i === data.correct) cls = "correct"; else if(i === g.selection) cls = "wrong"; }
-        html += `<div class="opt-btn ${cls}" onclick="handleManualAns(${i})">${String.fromCharCode(65+i)}. ${opt}</div>`;
+        html += `<div class="opt-btn ${cls}" onclick="handleManualAns(${i})">${String.fromCharCode(1512+i)}. ${opt}</div>`;
       });
-      html += `</div>${(g.selection !== null && g.selection !== undefined) ? `<p style="color:var(--gold); margin-top:20px; font-size:1.4rem; border-right:4px solid var(--gold); padding-right:15px;"><b>הסבר:</b> ${data.explanation}</p>` : ''}</div>`;
+      html += `</div>${(g.selection !== null && g.selection !== undefined) ? `<p style="color:var(--gold); margin-top:20px; font-size:1.4rem;"><b>הסבר:</b> ${data.explanation}</p>` : ''}</div>`;
     } else if(data.type === 'wheel') {
-        html += `<div style="text-align:center; margin-top:40px;"><div style="font-size:6rem; animation: ${!g.wheelResult ? 'spin 0.6s infinite linear' : 'none'}">🎡</div>`;
-        if(g.wheelResult) html += `<h1 style="color:var(--gold); font-size:3rem; margin-top:20px;">${g.wheelResult}</h1>`;
-        html += `</div>`;
+        html += `<div class="wheel-container">
+            <svg class="wheel-pointer" viewBox="0 0 20 20"><path d="M10 20L0 0h20z"/></svg>
+            <svg id="wheelSVG" viewBox="0 0 100 100">
+                <path d="M50 50 L50 0 A50 50 0 0 1 93.3 25 Z" fill="var(--green)"/>
+                <path d="M50 50 L93.3 25 A50 50 0 0 1 93.3 75 Z" fill="var(--yellow)"/>
+                <path d="M50 50 L93.3 75 A50 50 0 0 1 50 100 Z" fill="var(--red)"/>
+                <path d="M50 50 L50 100 A50 50 0 0 1 6.7 75 Z" fill="var(--green)"/>
+                <path d="M50 50 L6.7 75 A50 50 0 0 1 6.7 25 Z" fill="var(--yellow)"/>
+                <path d="M50 50 L6.7 25 A50 50 0 0 1 50 0 Z" fill="var(--red)"/>
+            </svg>
+        </div>`;
+        if(g.wheelResult) html += `<h1 style="color:var(--gold); font-size:3rem; text-align:center;">${g.wheelResult}</h1>`;
     }
-    html += `<button onclick="closeTurn()" style="margin-top:30px; width:100%; padding:25px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size:1.5rem;">סיום תור והמשך ➔</button>`;
+    html += `<button onclick="closeTurn()" style="margin-top:30px; width:100%; padding:25px; background:var(--green); border:none; border-radius:20px; font-weight:bold; cursor:pointer; font-size:1.5rem;">סיום תור ➔</button>`;
     document.getElementById('modalInfo').innerHTML = html;
   }
 
   function startTimer() {
-    let t = 15; window.quizTimer = setInterval(() => {
-        t -= 0.1; document.getElementById('timerBar').style.width = (t/15*100) + "%";
+    let t = 20; window.quizTimer = setInterval(() => {
+        t -= 0.1; document.getElementById('timerBar').style.width = (t/20*100) + "%";
         if(t <= 0) { clearInterval(window.quizTimer); db.ref('game').update({ selection: -1 }); }
     }, 100);
   }
@@ -164,12 +177,11 @@
 
   function closeTurn() { 
     db.ref('game').once('value', s => {
-      const g = s.val(); db.ref('game').update({ activeCell: null, selection: null, startTime: null, wheelResult: null, turn: (g.turn + 1) % g.turnOrder.length });
+      const g = s.val(); db.ref('game').update({ activeCell: null, selection: null, startTime: null, wheelResult: null, wheelRotation: 0, turn: (g.turn + 1) % g.turnOrder.length });
     });
   }
 
   window.onload = () => { setupQR(); initBoard(); listen(); };
 </script>
-<style> @keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} } </style>
 </body>
 </html>
