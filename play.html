@@ -6,18 +6,17 @@
   <title>📱 שלט סטודנט</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=3.0"></script>
+  <script src="js/gameData.js?v=4.1"></script>
   <style>
-    :root { --blue: #38bdf8; --bg: #020617; --card: #1e293b; --green: #22c55e; }
+    :root { --blue: #38bdf8; --bg: #020617; --card: #1e293b; --green: #22c55e; --gold: #facc15; }
     body { background: var(--bg); color: white; font-family: system-ui; text-align: center; padding: 20px; margin: 0; }
-    .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+    .card { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
     .btn { background: var(--blue); color: black; border: none; padding: 20px; border-radius: 15px; font-size: 1.5rem; font-weight: bold; width: 100%; cursor: pointer; }
     .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-    .opt-btn { background: var(--card); color: white; border: 3px solid var(--blue); padding: 40px; border-radius: 20px; font-size: 3rem; font-weight: bold; }
-    .char-item { font-size: 2.5rem; padding: 10px; border: 2px solid transparent; border-radius: 10px; cursor: pointer; }
+    .opt-btn { background: var(--card); color: white; border: 3px solid var(--blue); padding: 40px; border-radius: 20px; font-size: 3rem; font-weight: bold; box-shadow: 0 6px 0 #0369a1; }
+    .opt-btn:active { transform: translateY(4px); box-shadow: none; }
+    .char-item { font-size: 2.5rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,0.05); }
     .selected { border-color: var(--blue); background: var(--card); }
-    .wheel-btn { background: var(--gold) !important; padding: 50px 20px !important; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
   </style>
 </head>
 <body>
@@ -27,15 +26,18 @@
   <div class="card">
     <input type="text" id="pName" placeholder="שם הקבוצה" style="width:100%; padding:15px; border-radius:10px; border:none; margin-bottom:15px; font-size:1.1rem;">
     <div style="display:flex; justify-content:center; gap:10px; margin-bottom:20px;" id="charList"></div>
-    <button class="btn" style="background:var(--green);" onclick="join()">🚀 הצטרף למשחק</button>
+    <button class="btn" style="background:var(--green);" onclick="join()">🚀 היכנס ללובי</button>
   </div>
 </div>
 
 <div id="gameView" style="display:none;">
   <h1 id="myName">...</h1>
-  <div id="status-msg" style="color:var(--blue); font-weight:bold; margin-bottom:20px; font-size:1.3rem;"></div>
+  <div id="status-msg" style="color:var(--blue); font-weight:bold; margin-bottom:20px; font-size:1.4rem;"></div>
+
   <button id="rollBtn" class="btn" style="display:none; background:var(--green);" onclick="roll()">🎲 הטל קובייה</button>
+
   <div id="quizArea" style="display: none;">
+    <h3 style="color:var(--gold);">בחר תשובה:</h3>
     <div class="opt-grid">
       <button class="opt-btn" onclick="sendAns(0)">א</button>
       <button class="opt-btn" onclick="sendAns(1)">ב</button>
@@ -43,8 +45,9 @@
       <button class="opt-btn" onclick="sendAns(3)">ד</button>
     </div>
   </div>
+
   <div id="wheelArea" style="display: none;">
-    <button class="btn wheel-btn" onclick="spin()">🎡 סובב גלגל מזל!</button>
+    <button class="btn" style="background:var(--gold); padding:40px 10px;" onclick="spin()">🎡 סובב גלגל מזל!</button>
   </div>
 </div>
 
@@ -68,7 +71,7 @@
 
   function join() {
     const name = document.getElementById('pName').value;
-    if(!name) return alert("הכנס שם קבוצה");
+    if(!name) return alert("נא להזין שם קבוצה");
     db.ref('players/' + myId).set({ name, icon: selectedIcon, color: '#38bdf8', pos: 0 });
     localStorage.setItem('game_id', myId);
     showGame();
@@ -77,20 +80,24 @@
   function showGame() {
     document.getElementById('setupView').style.display = 'none';
     document.getElementById('gameView').style.display = 'block';
+    
     db.ref('game').on('value', snap => {
-      const g = snap.val() || { turn: 0 };
-      db.ref('players').on('value', psSnap => {
-        const ps = psSnap.val() || {};
-        const ids = Object.keys(ps);
-        const isMyTurn = ids[g.turn] === myId;
+      const g = snap.val() || { turn: 0, turnOrder: [] };
+      db.ref('players').on('value', pSnap => {
+        const ps = pSnap.val() || {};
         const me = ps[myId];
         if(!me) return;
+
+        const isMyTurn = g.turnOrder && g.turnOrder[g.turn] === myId;
         document.getElementById('myName').innerText = me.icon + " " + me.name;
-        document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! 🌟" : "המתן לקבוצה השנייה...";
-        const data = window.gameData.cells[g.activeCell];
+        document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! 🌟" : "המתן לתור הקבוצה הבאה...";
+        
+        const cellData = window.gameData.cells[g.activeCell];
+        
+        // הצגת כפתורים רק כשהתנאים מתקיימים
         document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
-        document.getElementById('quizArea').style.display = (isMyTurn && (data?.type === 'quiz' || data?.type === 'knowledge') && g.selection === null) ? 'block' : 'none';
-        document.getElementById('wheelArea').style.display = (isMyTurn && data?.type === 'wheel' && !g.wheelResult) ? 'block' : 'none';
+        document.getElementById('quizArea').style.display = (isMyTurn && (cellData?.type === 'quiz' || cellData?.type === 'knowledge') && (g.selection === null || g.selection === undefined)) ? 'block' : 'none';
+        document.getElementById('wheelArea').style.display = (isMyTurn && cellData?.type === 'wheel' && !g.wheelResult) ? 'block' : 'none';
       });
     });
   }
@@ -104,7 +111,9 @@
       db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
     });
   }
+
   function sendAns(i) { db.ref('game').update({ selection: i }); }
+
   function spin() {
     db.ref('game').update({ state: 'wheeling' });
     setTimeout(() => {
@@ -112,7 +121,9 @@
         const cell = window.gameData.cells[gSnap.val().activeCell];
         const res = cell.outcomes[Math.floor(Math.random()*cell.outcomes.length)];
         db.ref('game').update({ state: 'playing', wheelResult: "תוצאה: " + res.text });
-        db.ref('players/'+myId).once('value', s => { db.ref('players/'+myId).update({ pos: Math.max(0, Math.min(s.val().pos + res.move, 49)) }); });
+        db.ref('players/'+myId).once('value', s => { 
+            db.ref('players/'+myId).update({ pos: Math.max(0, Math.min(s.val().pos + res.move, 49)) }); 
+        });
       });
     }, 2000);
   }
