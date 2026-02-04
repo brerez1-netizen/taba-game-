@@ -2,120 +2,108 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
+  <title>🏙️ מסלול התב"ע - MASTER CONTROL (ארז ברוכי)</title>
+  
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  
   <script src="js/gameData.js?v=1.2"></script>
+
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
     html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
     
+    /* פריסת לוח המשחק */
     .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
     .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
     .board-row { display: flex; flex: 1; gap: 8px; }
     .row-reverse { flex-direction: row-reverse; }
     
-    .cell { flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.8rem; }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.65rem; padding: 5px; text-align: center; min-height: 25px; display: flex; align-items: center; justify-content: center; }
+    .cell { flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); overflow: hidden; }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; z-index: 10; }
+    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.7rem; padding: 5px; text-align: center; min-height: 30px; display: flex; align-items: center; justify-content: center; line-height: 1.1; }
     
+    /* סרגל צד */
     .sidebar { flex: 1.2; background: #0f172a; border-right: 2px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
+    .dice-box { font-size: 4.5rem; text-align: center; margin-bottom: 10px; filter: drop-shadow(0 0 10px var(--blue)); }
     
-    .overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); background-size: cover; }
-    .overlay-box { background: rgba(2, 6, 23, 0.95); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
+    /* מסכי כיסוי (Lobby & End) */
+    .overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; background-image: url('images/start.jpeg'); background-size: cover; background-position: center; }
+    .overlay-box { background: rgba(2, 6, 23, 0.96); padding: 45px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 500px; box-shadow: 0 0 50px rgba(56, 189, 248, 0.3); }
     
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 2px solid var(--blue); width: 600px; text-align: center; }
+    /* חלון מידע (Modal) */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 3000; }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 25px; border: 3px solid var(--blue); width: 750px; text-align: center; max-height: 90vh; overflow-y: auto; }
     
-    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 2px solid black; }
+    /* חיילים */
+    .pawn { width: 44px; height: 44px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; border: 3px solid white; box-shadow: 0 4px 10px black; }
     
-    .btn { padding: 15px 40px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    .btn-green { background: var(--green); color: black; }
+    /* כפתורים */
+    .btn { padding: 15px 35px; font-size: 1.3rem; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-green { background: var(--green); color: black; box-shadow: 0 4px 0 #166534; }
     .btn-red { background: var(--red); color: white; margin-top: auto; }
     
-    .qr-frame { background: white; padding: 10px; border-radius: 15px; margin: 20px auto; display: inline-block; border: 4px solid var(--blue); }
+    .qr-frame { background: white; padding: 12px; border-radius: 15px; margin: 20px auto; display: inline-block; border: 4px solid var(--blue); }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay" class="overlay">
   <div class="overlay-box">
-    <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
+    <h1 style="color: var(--blue); font-size: 4rem; margin: 0;">🏙️ מסלול התב"ע</h1>
+    <p style="font-size: 1.2rem; color: #94a3b8;">סרקו כדי להצטרף לצוות התכנון</p>
     <div class="qr-frame">
-        <img id="autoQR" width="180" height="180" alt="טוען ברקוד...">
+        <img id="autoQR" width="190" height="190" alt="טוען ברקוד...">
     </div>
-    <div id="lobbyPlayerList" style="margin-bottom: 20px; color: var(--gold); font-size: 1.2rem; min-height: 40px;">ממתין לקבוצות...</div>
-    <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
+    <div id="lobbyPlayerList" style="margin-bottom: 25px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 50px;">
+        ממתין לקבוצות...
+    </div>
+    <button class="btn btn-green" onclick="startGame()">🚀 התחל בדיון (Start)</button>
     <br><br>
-    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס נתונים מלא</button>
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer; font-size: 0.8rem;">איפוס נתונים מלא</button>
   </div>
 </div>
 
 <div id="gameScreen" class="main-layout" style="display: none;">
   <div class="board-section" id="boardContainer"></div>
   <div class="sidebar">
-    <div id="diceDisplay" style="font-size: 4rem; text-align: center;">🎲</div>
-    <h3 style="color:var(--blue);">קבוצות בשטח</h3>
+    <div id="diceDisplay" class="dice-box">🎲</div>
+    <h3 style="color:var(--blue); border-bottom: 1px solid #1e293b; padding-bottom: 10px;">קבוצות בשטח</h3>
     <div id="playersStatusList" style="flex:1; overflow-y:auto; margin-top: 10px;"></div>
-    <div style="background:white; padding:5px; border-radius:8px; margin: 10px auto; width: 80px; height: 80px;">
-        <img id="sideQR" width="80" height="80">
+    <div style="background:white; padding:8px; border-radius:10px; margin: 10px auto; width: 90px; height: 90px;">
+        <img id="sideQR" width="90" height="90">
     </div>
     <button class="btn btn-red" onclick="resetSystem()">🛑 סיום ואיפוס</button>
   </div>
 </div>
 
-function initBoard() {
-    // בדיקה אם המידע נטען מהקובץ החיצוני
-    if (!window.gameData) {
-        console.log("ממתין לנתוני המשבצות...");
-        setTimeout(initBoard, 500); // ניסיון חוזר בעוד חצי שנייה
-        return;
-    }
+<div id="infoModal" class="modal">
+  <div id="modalBody" class="modal-content"></div>
+</div>
 
-    const container = document.getElementById('boardContainer');
-    if(container.children.length > 0) return; // מניעת בנייה כפולה
-    
-    console.log("מתחיל בניית לוח עם " + Object.keys(window.gameData).length + " משבצות.");
-
-    for(let r=0; r<5; r++) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const cell = document.createElement('div');
-        cell.className = 'cell'; cell.id = `cell-${num}`;
-        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
-        
-        // משיכת הנתונים מהקובץ החיצוני
-        const data = window.gameData[num];
-        const title = data ? data.title : "שלב סטטוטורי " + num;
-        
-        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
-        rowDiv.appendChild(cell);
-      }
-      container.appendChild(rowDiv);
-    }
-  }
 <script>
-  // Firebase Configuration
+  // Firebase Config
   const config = { apiKey: "AIzaSyDo9f15BQWkbRi99BMMOpeytdS4V8gbNg0", databaseURL: "https://erez-taba-game-default-rtdb.firebaseio.com/", projectId: "erez-taba-game" };
   firebase.initializeApp(config);
   const db = firebase.database();
 
-  // יצירת הברקוד באופן אוטומטי מהכתובת הנוכחית
+  // יצירת ברקוד אוטומטי
   function setupQR() {
     const studentUrl = window.location.href.split('index.html')[0].replace(/\/$/, "") + "/play.html";
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
     document.getElementById('autoQR').src = qrUrl;
     document.getElementById('sideQR').src = qrUrl;
   }
 
+  // בניית הלוח (בדיקה אם המידע נטען)
   function initBoard() {
+    if (!window.gameData) {
+        setTimeout(initBoard, 300);
+        return;
+    }
     const container = document.getElementById('boardContainer');
     if(container.children.length > 0) return;
+    
     for(let r=0; r<5; r++) {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
@@ -124,7 +112,8 @@ function initBoard() {
         const cell = document.createElement('div');
         cell.className = 'cell'; cell.id = `cell-${num}`;
         cell.style.backgroundImage = `url('images/${num}.jpeg')`;
-        const title = (window.gameData && gameData[num]) ? gameData[num].title : "שלב תכנוני";
+        const data = window.gameData[num];
+        const title = data ? data.title : "שלב " + num;
         cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
         rowDiv.appendChild(cell);
       }
@@ -132,6 +121,7 @@ function initBoard() {
     }
   }
 
+  // האזנה לשינויים ב-Firebase
   function listenSystem() {
     db.ref('game').on('value', snap => {
       const g = snap.val() || { state: 'lobby', turn: 0 };
@@ -144,35 +134,65 @@ function initBoard() {
         if(g.state === 'moving' && g.lastRoll) handleMovement(g.turn, g.lastRoll);
       }
 
-      const modal = document.getElementById('infoModal');
       if(g.activeCell) {
-        const data = (window.gameData && gameData[g.activeCell]) ? gameData[g.activeCell] : { title: "בדיקה", info: "שלב בתהליך." };
-        document.getElementById('modalBody').innerHTML = `<h1>${data.title}</h1><p>${data.info || ""}</p><button class="btn btn-green" onclick="closeCell()">סגור תור X</button>`;
-        modal.style.display = 'flex';
-      } else { modal.style.display = 'none'; }
+        showModalContent(g);
+      } else {
+        document.getElementById('infoModal').style.display = 'none';
+      }
     });
 
     db.ref('players').on('value', snap => {
       const ps = snap.val() || {};
       const ids = Object.keys(ps);
       
-      const lobbyList = document.getElementById('lobbyPlayerList');
-      lobbyList.innerHTML = ids.length > 0 ? ids.map(id => `<span style="background:${ps[id].color}44; border:1px solid ${ps[id].color}; padding:5px 12px; border-radius:10px; margin:5px;">${ps[id].avatar} ${ps[id].name}</span>`).join(' ') : "ממתין לקבוצות...";
+      // עדכון רשימת קבוצות בלובי
+      document.getElementById('lobbyPlayerList').innerHTML = ids.length > 0 ? ids.map(id => `<span style="background:${ps[id].color}44; border:2px solid ${ps[id].color}; padding:8px 15px; border-radius:12px;">🏗️ ${ps[id].name}</span>`).join(' ') : "ממתין לקבוצות...";
       
+      // עדכון מיקום חיילים על הלוח
       document.querySelectorAll('.pawn').forEach(p => p.remove());
       document.getElementById('playersStatusList').innerHTML = ids.map(id => {
         const p = ps[id];
         const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = p.avatar; pawn.style.background = p.color;
+        pawn.className = 'pawn'; pawn.innerText = "🏗️"; pawn.style.background = p.color;
         document.body.appendChild(pawn);
         const cell = document.getElementById(`cell-${p.pos + 1}`);
         if(cell) {
           const r = cell.getBoundingClientRect();
-          pawn.style.top = (r.top + 5) + "px"; pawn.style.left = (r.left + 5) + "px";
+          pawn.style.top = (r.top + 8) + "px"; pawn.style.left = (r.left + 8) + "px";
         }
-        return `<div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px; border-right:4px solid ${p.color}; margin-bottom:5px; font-size:0.85rem;">${p.avatar} ${p.name} (משבצת ${p.pos+1})</div>`;
+        return `<div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:10px; border-right:5px solid ${p.color}; margin-bottom:8px;"><b>${p.name}</b> (משבצת ${p.pos+1})</div>`;
       }).join('');
     });
+  }
+
+  // הצגת תוכן השאלה/מידע במודאל
+  function showModalContent(g) {
+    const data = window.gameData[g.activeCell] || { title: "שלב תכנוני", info: "בדיקת סטטוס..." };
+    const modal = document.getElementById('infoModal');
+    const body = document.getElementById('modalBody');
+    modal.style.display = 'flex';
+
+    let html = `<h2 style="color:var(--blue); margin:0;">משבצת ${g.activeCell}</h2>`;
+    html += `<h1 style="font-size:2.5rem; margin:10px 0;">${data.title}</h1>`;
+    html += `<p style="font-size:1.5rem; line-height:1.4;">${data.info || ""}</p>`;
+
+    if (data.type === 'quiz') {
+        html += `<div style="background:rgba(0,0,0,0.3); padding:25px; border-radius:20px; margin-top:20px; border:1px solid var(--blue);">`;
+        html += `<h2 style="color:var(--gold); margin-top:0;">שאלה: ${data.question}</h2>`;
+        html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px;">`;
+        data.options.forEach((opt, i) => {
+            let style = "padding:20px; border-radius:12px; border:2px solid rgba(255,255,255,0.1); font-size:1.3rem; transition:0.3s;";
+            if (g.selection !== undefined && g.selection !== null) {
+                if (i === data.correct) style += "background:var(--green); color:black; border-color:white; font-weight:bold; transform:scale(1.05);";
+                else if (i === g.selection) style += "background:var(--red); color:white; border-color:white; opacity:0.8;";
+            }
+            html += `<div style="${style}">${String.fromCharCode(65+i)}. ${opt}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    html += `<button class="btn btn-green" style="margin-top:40px; width:100%;" onclick="closeCell()">סיום תור והמשך ➔</button>`;
+    body.innerHTML = html;
   }
 
   async function handleMovement(turnIdx, roll) {
@@ -190,19 +210,15 @@ function initBoard() {
     db.ref('game').once('value', s => {
       db.ref('players').once('value', ps => {
         const ids = Object.keys(ps.val() || {});
-        db.ref('game').update({ activeCell: null, turn: (s.val().turn + 1) % ids.length, lastRoll: 0 });
+        db.ref('game').update({ activeCell: null, turn: (s.val().turn + 1) % ids.length, lastRoll: 0, selection: null });
       });
     });
   }
 
   function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
-  function resetSystem() { 
-    if(confirm("זה ימחק את כל שחקני העבר ויאפס את המשחק. להמשיך?")) {
-        db.ref('/').set({ game:{state:'lobby', turn:0, lastRoll:0}, players:{} }).then(() => location.reload()); 
-    }
-  }
+  function resetSystem() { if(confirm("איפוס מלא של כל השחקנים והנתונים?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(()=>location.reload()); }
 
-  // הפעלה
+  // הפעלה ראשונית
   setupQR();
   listenSystem();
 </script>
