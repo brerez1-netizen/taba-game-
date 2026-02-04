@@ -3,46 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>📱 שחקן - מסלול התב"ע</title>
+  <title>📱 שלט סטודנט - מסלול התב"ע</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="js/gameData.js?v=1.2"></script>
   <style>
-    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; }
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --green: #22c55e; --red: #ef4444; }
     body { background: var(--bg); color: white; font-family: system-ui, sans-serif; text-align: center; margin: 0; padding: 20px; transition: 0.5s; overflow-x: hidden; }
     .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--blue); background: #0f172a; color: white; font-size: 1.1rem; box-sizing: border-box; }
-    .btn { background: var(--blue); color: #020617; border: none; padding: 18px; border-radius: 15px; font-size: 1.3rem; font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 4px 0 #0284c7; }
-    .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
-    .avatar-opt { font-size: 1.8rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; cursor: pointer; background: #0f172a; }
-    .avatar-opt.selected { border-color: var(--gold); background: var(--card); }
-    #status-msg { font-size: 1.3rem; margin-bottom: 15px; font-weight: bold; color: var(--gold); }
+    .btn { background: var(--blue); color: #020617; border: none; padding: 18px; border-radius: 15px; font-size: 1.3rem; font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 4px 0 #0284c7; margin-top: 10px; }
+    .btn:active { transform: translateY(4px); box-shadow: none; }
+    .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+    .opt-btn { background: rgba(255,255,255,0.1); color: white; border: 2px solid var(--blue); padding: 25px; border-radius: 15px; font-size: 1.8rem; font-weight: bold; cursor: pointer; }
+    .opt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .selected-opt { background: var(--gold) !important; color: black !important; border-color: white !important; }
+    #status-msg { font-size: 1.2rem; margin-bottom: 15px; color: var(--gold); font-weight: bold; min-height: 1.5em; }
   </style>
 </head>
 <body id="pBody">
 
-<div id="setupView">
-  <h1>הגדרת קבוצה</h1>
+<div id="setupView" style="display: none;">
+  <h1 style="color: var(--blue);">הגדרת קבוצה</h1>
   <div class="card">
-    <input type="text" id="pName" placeholder="שם הקבוצה">
-    <div class="avatar-grid">
-      <div class="avatar-opt" onclick="selAv(this, '🏗️')">🏗️</div>
-      <div class="avatar-opt" onclick="selAv(this, '🏠')">🏠</div>
-      <div class="avatar-opt" onclick="selAv(this, '📐')">📐</div>
-      <div class="avatar-opt" onclick="selAv(this, '🚜')">🚜</div>
-    </div>
-    <input type="color" id="pColor" value="#38bdf8" style="height:50px;">
-    <button class="btn" style="margin-top:20px;" onclick="join()">🚀 הצטרף למשחק</button>
+    <input type="text" id="pName" placeholder="שם הקבוצה" style="width:100%; padding:15px; border-radius:10px; border:none; margin-bottom:10px; font-size:1.1rem;">
+    <input type="color" id="pColor" value="#38bdf8" style="width:100%; height:50px; border:none; border-radius:10px;">
+    <button class="btn" onclick="join()">🚀 הצטרף לוועדה</button>
   </div>
 </div>
 
 <div id="gameView" style="display: none;">
-  <div id="status-msg">מתחבר...</div>
+  <div id="status-msg">מתחבר למערכת...</div>
+  
   <div class="card">
-    <div id="avBox" style="font-size: 4.5rem;"></div>
-    <h2 id="nameBox" style="margin: 0;"></h2>
-    <div id="posBox" style="color: var(--blue); font-size: 1.2rem;"></div>
+    <div id="avBox" style="font-size: 4rem;">🏗️</div>
+    <h2 id="nameBox" style="margin: 5px 0;">טוען...</h2>
+    <div id="posBox" style="color: var(--blue); font-size: 1.1rem;"></div>
   </div>
-  <button id="rollBtn" class="btn" style="display:none; margin-top:20px;" onclick="roll()">🎲 הטל קובייה</button>
+
+  <div id="quizArea" style="display: none;">
+    <h3 id="qTitle" style="color: var(--gold); margin-bottom: 5px;">שאלה מהוועדה:</h3>
+    <div class="quiz-grid">
+      <button class="opt-btn" id="opt0" onclick="sendAns(0)">א</button>
+      <button class="opt-btn" id="opt1" onclick="sendAns(1)">ב</button>
+      <button class="opt-btn" id="opt2" onclick="sendAns(2)">ג</button>
+      <button class="opt-btn" id="opt3" onclick="sendAns(3)">ד</button>
+    </div>
+  </div>
+
+  <button id="rollBtn" class="btn" style="display:none; background: var(--green);" onclick="roll()">🎲 הטל קובייה</button>
 </div>
 
 <script>
@@ -51,20 +59,13 @@
   const db = firebase.database();
 
   let myId = localStorage.getItem('erez_game_id');
-  let selectedAvatar = "🏗️";
-
-  function selAv(el, av) {
-    document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedAvatar = av;
-  }
 
   function join() {
     const name = document.getElementById('pName').value;
     const color = document.getElementById('pColor').value;
     if (!name) return alert("נא להזין שם");
     myId = "p_" + Date.now();
-    db.ref('players/' + myId).set({ name, avatar: selectedAvatar, color, pos: 0 });
+    db.ref('players/' + myId).set({ name, avatar: "🏗️", color, pos: 0, score: 0 });
     localStorage.setItem('erez_game_id', myId);
     showGame();
   }
@@ -74,30 +75,45 @@
     document.getElementById('gameView').style.display = 'block';
     
     db.ref('game').on('value', snap => {
-      const g = snap.val() || { state: 'lobby' };
+      const g = snap.val() || { state: 'lobby', turn: 0 };
       db.ref('players').on('value', pSnap => {
         const ps = pSnap.val() || {};
         if (!ps[myId]) { localStorage.removeItem('erez_game_id'); location.reload(); return; }
         
         const ids = Object.keys(ps);
         const isMyTurn = ids[g.turn] === myId;
-        document.getElementById('status-msg').innerText = isMyTurn ? "זה התור שלך! 🌟" : "המתן להחלטת הוועדה...";
-        document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell && g.state === 'playing') ? 'block' : 'none';
-        
         const me = ps[myId];
-        document.getElementById('avBox').innerText = me.avatar;
+
+        // עדכון UI בסיסי
+        document.getElementById('status-msg').innerText = isMyTurn ? "זה התור שלך! 🌟" : "המתן להחלטת הוועדה...";
         document.getElementById('nameBox').innerText = me.name;
         document.getElementById('posBox').innerText = "משבצת " + (me.pos + 1);
-        document.getElementById('pBody').style.background = `linear-gradient(180deg, ${me.color}22 0%, #020617 100%)`;
+        document.getElementById('pBody').style.background = `linear-gradient(180deg, ${me.color}33 0%, #020617 100%)`;
+
+        // כפתור קובייה
+        document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell && g.state === 'playing') ? 'block' : 'none';
+
+        // טיפול בשאלות (Quiz)
+        const quizArea = document.getElementById('quizArea');
+        if (isMyTurn && g.activeCell && window.gameData && window.gameData[g.activeCell]?.type === 'quiz') {
+          quizArea.style.display = 'block';
+          // הדגשת התשובה שנבחרה
+          for(let i=0; i<4; i++) {
+            const btn = document.getElementById('opt' + i);
+            btn.className = (g.selection === i) ? 'opt-btn selected-opt' : 'opt-btn';
+            btn.disabled = (g.selection !== undefined && g.selection !== null);
+          }
+        } else {
+          quizArea.style.display = 'none';
+        }
       });
     });
   }
 
-  function roll() { db.ref('game').update({ lastRoll: Math.floor(Math.random()*6)+1, state: 'moving' }); }
+  function roll() { db.ref('game').update({ lastRoll: Math.floor(Math.random()*6)+1, state: 'moving', selection: null }); }
+  function sendAns(idx) { db.ref('game').update({ selection: idx }); }
 
-  if (myId) {
-    db.ref('players/' + myId).once('value', s => { if (s.exists()) showGame(); else localStorage.removeItem('erez_game_id'); });
-  }
+  if (myId) showGame(); else document.getElementById('setupView').style.display = 'block';
 </script>
 </body>
 </html>
