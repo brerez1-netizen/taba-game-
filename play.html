@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>📱 שלט סטודנט</title>
+  <title>📱 שלט סטודנט - תחרותי</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=8.0"></script>
+  <script src="js/gameData.js?v=9.0"></script>
   <style>
     :root { --blue: #38bdf8; --bg: #020617; --card: #1e293b; --green: #22c55e; }
     body { background: var(--bg); color: white; font-family: system-ui; text-align: center; padding: 20px; }
-    .btn { background: var(--blue); color: black; border: none; padding: 25px; border-radius: 20px; font-size: 1.8rem; font-weight: bold; width: 100%; margin-top: 15px; }
+    .card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+    .btn { background: var(--blue); color: black; border: none; padding: 25px; border-radius: 20px; font-size: 1.8rem; font-weight: bold; width: 100%; margin-top: 15px; box-shadow: 0 6px 0 #0369a1; }
     .opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
-    .opt-btn { background: var(--card); color: white; border: 4px solid var(--blue); padding: 55px 10px; border-radius: 30px; font-size: 4.5rem; font-weight: bold; }
+    .opt-btn { background: var(--card); color: white; border: 4px solid var(--blue); padding: 55px 10px; border-radius: 30px; font-size: 4.5rem; font-weight: bold; box-shadow: 0 8px 0 #0369a1; }
     .char-item { font-size: 2.5rem; padding: 10px; border: 2px solid transparent; border-radius: 12px; }
     .selected { border-color: var(--blue); background: var(--card); }
   </style>
@@ -66,7 +67,7 @@
         document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! 🌟" : "המתן לתור הקבוצה הבאה...";
         const data = window.gameData.cells[g.activeCell];
         document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
-        document.getElementById('quizArea').style.display = (isMyTurn && data?.type === 'quiz' && (g.selection === null || g.selection === undefined)) ? 'block' : 'none';
+        document.getElementById('quizArea').style.display = (isMyTurn && data?.type === 'quiz' && g.selection === null) ? 'block' : 'none';
         document.getElementById('wheelArea').style.display = (isMyTurn && data?.type === 'wheel' && !g.wheelResult) ? 'block' : 'none';
       });
     });
@@ -75,17 +76,17 @@
   function roll() { 
     const r = Math.floor(Math.random()*6)+1;
     db.ref('game').update({ state: 'moving', lastRoll: r, selection: null, wheelResult: null });
-    db.ref('players/'+myId).once('value', s => { 
-        const newPos = Math.min(s.val().pos + r, 49);
-        db.ref('players/'+myId).update({ pos: newPos });
-        db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
+    db.ref('players/'+myId).once('value', s => {
+      const newPos = Math.min(s.val().pos + r, 49);
+      db.ref('players/'+myId).update({ pos: newPos });
+      db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
     });
   }
 
   async function sendAns(idx) {
     const gSnap = await db.ref('game').once('value'); const g = gSnap.val();
     const data = window.gameData.cells[g.activeCell]; const pSnap = await db.ref('players/' + myId).once('value'); const p = pSnap.val();
-    let bonus = 0; if(idx === data.correct) { bonus = Math.max(50, 100 - Math.round(((Date.now() - g.startTime)/1000)*3)); }
+    let bonus = (idx === data.correct) ? Math.max(50, 100 - Math.round(((Date.now() - g.startTime)/1000)*3)) : 0;
     const move = (idx === data.correct) ? (data.correctMove || 0) : (data.wrongMove || 0);
     await db.ref('players/' + myId).update({ score: (p.score || 0) + bonus, pos: Math.max(0, Math.min(p.pos + move, 49)) });
     db.ref('game').update({ selection: idx });
