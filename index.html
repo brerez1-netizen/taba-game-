@@ -2,50 +2,45 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - MASTER</title>
+  <title>🏙️ מסלול התב"ע - מסך מרצה</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=2.1"></script>
+  <script src="js/gameData.js?v=3.0"></script>
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
     body { background: var(--bg); color: #e5f4ff; font-family: system-ui; overflow: hidden; margin: 0; }
     .main-layout { display: grid; grid-template-columns: 320px 1fr; height: 100vh; gap: 15px; padding: 15px; }
     .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5px; height: 100%; }
-    .cell { border-radius: 8px; border: 2px solid rgba(56,189,248,0.2); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-size: 0.8rem; color: white; text-shadow: 0 0 4px black; z-index: 5; }
-    .cell-title { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 0.65rem; text-align: center; padding: 4px 0; min-height: 25px; display: flex; align-items: center; justify-content: center; line-height: 1; }
-    .sidebar { background: #0f172a; border: 2px solid var(--blue); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .cell { border-radius: 8px; border: 1px solid rgba(56,189,248,0.2); background-size: cover; position: relative; background-color: var(--card); }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-size: 0.8rem; text-shadow: 0 0 3px black; }
+    .cell-title { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 0.6rem; text-align: center; padding: 3px 0; line-height: 1; }
+    .sidebar { background: #0f172a; border: 2px solid var(--blue); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: var(--card); padding: 40px; border-radius: 25px; border: 3px solid var(--blue); width: 750px; text-align: center; box-shadow: 0 0 40px var(--blue); }
-    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 50; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 3px solid white; box-shadow: 0 4px 10px black; }
-    .opt { padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); margin: 5px; cursor: pointer; font-size: 1.2rem; }
-    .correct { background: var(--green) !important; color: black; font-weight: bold; border-color: white; }
-    .wrong { background: var(--red) !important; color: white; border-color: white; }
-    .wheel-box { font-size: 6rem; margin: 20px; }
-    .spin-anim { animation: spin 0.5s infinite linear; }
+    .modal-content { background: var(--card); padding: 35px; border-radius: 25px; border: 3px solid var(--blue); width: 850px; text-align: right; }
+    .pawn { width: 40px; height: 40px; border-radius: 50%; position: absolute; z-index: 50; transition: 0.6s; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; border: 2px solid white; box-shadow: 0 0 10px black; }
+    .opt { padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin: 5px 0; cursor: pointer; }
+    .correct { background: var(--green) !important; color: black; font-weight: bold; }
+    .wrong { background: var(--red) !important; color: white; }
+    .spin-anim { animation: spin 0.6s infinite linear; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .btn { padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-    .btn-green { background: var(--green); color: black; }
   </style>
 </head>
 <body>
 
 <div id="lobbyOverlay" class="modal" style="display: flex;">
-  <div class="modal-content">
-    <h1 style="color: var(--blue); font-size: 3.5rem;">🏙️ מסלול התב"ע</h1>
-    <div style="background:white; padding:15px; display:inline-block; border-radius:15px; margin:20px;"><img id="autoQR" width="200" height="200"></div>
-    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin: 20px 0;">ממתין לקבוצות...</div>
-    <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
+  <div class="modal-content" style="text-align:center;">
+    <h1 style="color: var(--blue); font-size: 3rem;">🏙️ מסלול התב"ע</h1>
+    <div style="background:white; padding:10px; display:inline-block; border-radius:15px; margin:20px;"><img id="autoQR" width="180" height="180"></div>
+    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:20px;"></div>
+    <button onclick="startGame()" style="padding:15px 40px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer;">🚀 התחל משחק</button>
   </div>
 </div>
 
 <div class="main-layout">
   <div class="sidebar">
-    <div id="dice" style="font-size: 5rem; text-align: center; margin-bottom: 20px;">🎲</div>
-    <h3 style="border-bottom: 2px solid var(--blue); padding-bottom: 10px;">קבוצות בשטח</h3>
-    <div id="playerStats" style="flex:1; overflow-y:auto;"></div>
-    <img id="sideQR" width="80" height="80" style="margin: 20px auto; border: 2px solid white; border-radius: 10px;">
-    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס מערכת</button>
+    <div id="dice" style="font-size: 4rem; text-align: center;">🎲</div>
+    <div id="playerStats" style="flex:1; overflow-y:auto; margin-top:20px;"></div>
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס מלא</button>
   </div>
   <div class="board" id="board"></div>
 </div>
@@ -61,9 +56,7 @@
 
   function setupQR() {
     const studentUrl = window.location.href.split('index.html')[0] + "play.html";
-    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
-    document.getElementById('autoQR').src = qr;
-    document.getElementById('sideQR').src = qr;
+    document.getElementById('autoQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
   }
 
   function initBoard() {
@@ -96,8 +89,8 @@
 
       Object.keys(ps).forEach(id => {
         const p = ps[id];
-        lobby.innerHTML += `<div style="padding:8px 15px; background:${p.color}44; border:2px solid ${p.color}; border-radius:10px;">${p.icon} ${p.name}</div>`;
-        stats.innerHTML += `<div style="margin-bottom:10px; border-right:5px solid ${p.color}; padding-right:10px;"><b>${p.name}</b><br>משבצת ${p.pos+1}</div>`;
+        lobby.innerHTML += `<div style="padding:5px 10px; background:${p.color}44; border:1px solid ${p.color}; border-radius:5px;">${p.icon} ${p.name}</div>`;
+        stats.innerHTML += `<div style="margin-bottom:8px; border-right:4px solid ${p.color}; padding-right:8px;">${p.icon} <b>${p.name}</b><br>משבצת ${p.pos+1}</div>`;
         const pawn = document.createElement('div');
         pawn.className = 'pawn'; pawn.innerText = p.icon; pawn.style.background = p.color;
         document.body.appendChild(pawn);
@@ -112,11 +105,14 @@
     const body = document.getElementById('modalBody');
     document.getElementById('infoModal').style.display = 'flex';
     
-    let html = `<h2 style="color:var(--blue); margin:0;">משבצת ${g.activeCell}</h2><h1>${data.title}</h1><p style="font-size:1.4rem;">${data.info || ""}</p>`;
+    let html = `<div style="display:flex; gap:30px;">`;
+    html += `<div style="flex:1;"><img src="images/${g.activeCell}.jpeg" style="width:100%; border-radius:15px; border:2px solid var(--blue);"></div>`;
+    html += `<div style="flex:1.5;">`;
+    html += `<h2>משבצת ${g.activeCell}: ${data.title}</h2><p style="font-size:1.2rem;">${data.info || ""}</p>`;
     
     if(data.type === 'quiz' || data.type === 'knowledge') {
-      html += `<div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:20px; border:1px solid var(--blue);">`;
-      html += `<h3>${data.question || "שאלה מהוועדה:"}</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">`;
+      html += `<div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:15px; margin-top:15px;">`;
+      html += `<h3>${data.question || "שאלה:"}</h3>`;
       data.options?.forEach((opt, i) => {
         let cls = "";
         if(g.selection !== null && g.selection !== undefined) {
@@ -125,15 +121,17 @@
         }
         html += `<div class="opt ${cls}" onclick="db.ref('game').update({selection:${i}})">${String.fromCharCode(65+i)}. ${opt}</div>`;
       });
-      html += `</div>`;
-      if(g.selection !== null && g.selection !== undefined) html += `<p style="margin-top:20px; color:var(--gold); font-size:1.2rem;"><b>הסבר:</b> ${data.explanation}</p>`;
+      if(g.selection !== null && g.selection !== undefined) {
+        html += `<p style="margin-top:15px; color:var(--gold);"><b>הסבר:</b> ${data.explanation}</p>`;
+      }
       html += `</div>`;
     } else if(data.type === 'wheel') {
-      html += `<div class="wheel-box ${g.state==='wheeling'?'spin-anim':''}">🎡</div>`;
-      if(g.wheelResult) html += `<h2 style="color:var(--gold); animation: pulse 0.5s;">${g.wheelResult}</h2>`;
+      html += `<div style="text-align:center;"><div class="wheel-box ${g.state==='wheeling'?'spin-anim':''}" style="font-size:5rem;">🎡</div>`;
+      if(g.wheelResult) html += `<h2 style="color:var(--gold);">${g.wheelResult}</h2>`;
+      html += `</div>`;
     }
     
-    html += `<button class="btn btn-green" onclick="closeTurn()" style="margin-top:30px; width:100%;">סיים תור ➔</button>`;
+    html += `<button onclick="closeTurn()" style="margin-top:20px; width:100%; padding:15px; background:var(--green); border:none; border-radius:10px; font-weight:bold; cursor:pointer;">סיים תור והמשך ➔</button></div></div>`;
     body.innerHTML = html;
   }
 
