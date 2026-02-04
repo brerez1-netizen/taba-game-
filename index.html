@@ -2,55 +2,52 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🏙️ מסלול התב"ע - MASTER CONTROL</title>
+  <title>🏙️ מסלול התב"ע - MASTER</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="js/gameData.js?v=1.3"></script>
+  <script src="js/gameData.js?v=2.1"></script>
   <style>
     :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
-    html, body { height: 100%; margin: 0; padding: 0; background: var(--bg); color: white; overflow: hidden; font-family: system-ui, sans-serif; }
-    .main-layout { display: flex; flex-direction: row-reverse; width: 100vw; height: 100vh; }
-    .board-section { flex: 3.5; display: flex; flex-direction: column-reverse; padding: 10px; gap: 8px; }
-    .board-row { display: flex; flex: 1; gap: 8px; }
-    .row-reverse { flex-direction: row-reverse; }
-    .cell { flex: 1; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
-    .cell-num { position: absolute; top: 3px; right: 5px; font-weight: bold; color: var(--blue); font-size: 0.9rem; text-shadow: 1px 1px 2px black; }
-    .cell-title { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); font-size: 0.7rem; padding: 5px; text-align: center; min-height: 30px; display: flex; align-items: center; justify-content: center; }
-    .sidebar { flex: 1.2; background: #0f172a; border-right: 2px solid var(--blue); padding: 20px; display: flex; flex-direction: column; }
-    .overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; background: url('images/start.jpeg') center/cover; }
-    .overlay-box { background: rgba(2, 6, 23, 0.96); padding: 40px; border-radius: 30px; border: 2px solid var(--blue); text-align: center; min-width: 450px; }
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); display: none; align-items: center; justify-content: center; z-index: 3000; }
-    .modal-content { background: var(--card); padding: 40px; border-radius: 25px; border: 3px solid var(--blue); width: 700px; text-align: center; }
-    .pawn { width: 44px; height: 44px; border-radius: 50%; position: absolute; z-index: 100; transition: 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; border: 2px solid white; box-shadow: 0 4px 10px black; }
-    .btn { padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
-    .btn-green { background: var(--green); color: black; }
-    .btn-red { background: var(--red); color: white; margin-top: auto; }
-    .clickable-opt { cursor: pointer; transition: 0.2s; }
-    .clickable-opt:hover { transform: scale(1.02); background: rgba(255,255,255,0.1); }
-    .wheel-anim { font-size: 5rem; animation: spin 1s infinite linear; display: inline-block; }
+    body { background: var(--bg); color: #e5f4ff; font-family: system-ui; overflow: hidden; margin: 0; }
+    .main-layout { display: grid; grid-template-columns: 320px 1fr; height: 100vh; gap: 15px; padding: 15px; }
+    .board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5px; height: 100%; }
+    .cell { border-radius: 8px; border: 2px solid rgba(56,189,248,0.2); background-size: cover; background-position: center; position: relative; background-color: var(--card); }
+    .cell-num { position: absolute; top: 3px; right: 5px; font-size: 0.8rem; color: white; text-shadow: 0 0 4px black; z-index: 5; }
+    .cell-title { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); font-size: 0.65rem; text-align: center; padding: 4px 0; min-height: 25px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .sidebar { background: #0f172a; border: 2px solid var(--blue); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: var(--card); padding: 40px; border-radius: 25px; border: 3px solid var(--blue); width: 750px; text-align: center; box-shadow: 0 0 40px var(--blue); }
+    .pawn { width: 42px; height: 42px; border-radius: 50%; position: absolute; z-index: 50; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; border: 3px solid white; box-shadow: 0 4px 10px black; }
+    .opt { padding: 15px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1); margin: 5px; cursor: pointer; font-size: 1.2rem; }
+    .correct { background: var(--green) !important; color: black; font-weight: bold; border-color: white; }
+    .wrong { background: var(--red) !important; color: white; border-color: white; }
+    .wheel-box { font-size: 6rem; margin: 20px; }
+    .spin-anim { animation: spin 0.5s infinite linear; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .btn { padding: 15px 30px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+    .btn-green { background: var(--green); color: black; }
   </style>
 </head>
 <body>
 
-<div id="lobbyOverlay" class="overlay">
-  <div class="overlay-box">
-    <h1 style="color: var(--blue); font-size: 3.5rem; margin: 0;">🏙️ מסלול התב"ע</h1>
-    <div style="background:white; padding:10px; border-radius:15px; margin:20px auto; display:inline-block;"><img id="autoQR" width="180" height="180"></div>
-    <div id="lobbyPlayerList" style="margin-bottom: 20px; color: var(--gold);">ממתין לקבוצות...</div>
+<div id="lobbyOverlay" class="modal" style="display: flex;">
+  <div class="modal-content">
+    <h1 style="color: var(--blue); font-size: 3.5rem;">🏙️ מסלול התב"ע</h1>
+    <div style="background:white; padding:15px; display:inline-block; border-radius:15px; margin:20px;"><img id="autoQR" width="200" height="200"></div>
+    <div id="lobbyList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin: 20px 0;">ממתין לקבוצות...</div>
     <button class="btn btn-green" onclick="startGame()">🚀 התחל משחק</button>
-    <br><button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer; margin-top:10px;">איפוס מלא</button>
   </div>
 </div>
 
-<div id="gameScreen" class="main-layout" style="display: none;">
-  <div class="board-section" id="boardContainer"></div>
+<div class="main-layout">
   <div class="sidebar">
-    <div id="diceDisplay" style="font-size: 4rem; text-align: center;">🎲</div>
-    <div id="playersStatusList" style="flex:1; overflow-y:auto; margin-top: 10px;"></div>
-    <img id="sideQR" width="80" height="80" style="margin: 10px auto; border: 2px solid white; border-radius: 8px;">
-    <button class="btn btn-red" onclick="resetSystem()">🛑 איפוס</button>
+    <div id="dice" style="font-size: 5rem; text-align: center; margin-bottom: 20px;">🎲</div>
+    <h3 style="border-bottom: 2px solid var(--blue); padding-bottom: 10px;">קבוצות בשטח</h3>
+    <div id="playerStats" style="flex:1; overflow-y:auto;"></div>
+    <img id="sideQR" width="80" height="80" style="margin: 20px auto; border: 2px solid white; border-radius: 10px;">
+    <button onclick="resetSystem()" style="background:none; border:none; color:gray; cursor:pointer;">איפוס מערכת</button>
   </div>
+  <div class="board" id="board"></div>
 </div>
 
 <div id="infoModal" class="modal">
@@ -64,118 +61,94 @@
 
   function setupQR() {
     const studentUrl = window.location.href.split('index.html')[0] + "play.html";
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(studentUrl)}`;
-    document.getElementById('autoQR').src = qrUrl;
-    document.getElementById('sideQR').src = qrUrl;
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(studentUrl)}`;
+    document.getElementById('autoQR').src = qr;
+    document.getElementById('sideQR').src = qr;
   }
 
   function initBoard() {
-    if (!window.gameData) { setTimeout(initBoard, 300); return; }
-    const container = document.getElementById('boardContainer');
-    if(container.children.length > 0) return;
-    for(let r=0; r<5; r++) {
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'board-row' + (r % 2 !== 0 ? ' row-reverse' : '');
-      for(let c=1; c<=10; c++) {
-        const num = (r * 10) + c;
-        const cell = document.createElement('div');
-        cell.className = 'cell'; cell.id = `cell-${num}`;
-        cell.style.backgroundImage = `url('images/${num}.jpeg')`;
-        const title = window.gameData[num]?.title || "שלב " + num;
-        cell.innerHTML = `<div class="cell-num">${num}</div><div class="cell-title">${title}</div>`;
-        rowDiv.appendChild(cell);
-      }
-      container.appendChild(rowDiv);
+    if(!window.gameData) return setTimeout(initBoard, 300);
+    const b = document.getElementById('board');
+    b.innerHTML = '';
+    for(let i=1; i<=50; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell'; cell.id = `cell-${i}`;
+      cell.style.backgroundImage = `url('images/${i}.jpeg')`;
+      cell.innerHTML = `<div class="cell-num">${i}</div><div class="cell-title">${window.gameData.cells[i]?.title || ""}</div>`;
+      b.appendChild(cell);
     }
   }
 
-  function listenSystem() {
+  function listen() {
     db.ref('game').on('value', snap => {
-      const g = snap.val() || { state: 'lobby', turn: 0 };
+      const g = snap.val() || { state: 'lobby' };
       document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
-      document.getElementById('gameScreen').style.display = (g.state === 'playing' || g.state === 'moving' || g.state === 'wheeling') ? 'flex' : 'none';
-      
-      if(g.state === 'playing' || g.state === 'moving' || g.state === 'wheeling') {
-        initBoard();
-        if(g.lastRoll) document.getElementById('diceDisplay').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll];
-        if(g.state === 'moving' && g.lastRoll) handleMovement(g.turn, g.lastRoll);
-      }
-      if(g.activeCell) showModalContent(g); else document.getElementById('infoModal').style.display = 'none';
+      if(g.lastRoll) document.getElementById('dice').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll] || "🎲";
+      if(g.activeCell) showModal(g); else document.getElementById('infoModal').style.display = 'none';
     });
 
     db.ref('players').on('value', snap => {
       const ps = snap.val() || {};
-      const ids = Object.keys(ps);
-      document.getElementById('lobbyPlayerList').innerHTML = ids.map(id => `<span style="background:${ps[id].color}44; border:1px solid ${ps[id].color}; padding:5px 10px; border-radius:10px; margin:5px;">🏗️ ${ps[id].name}</span>`).join(' ');
+      const lobby = document.getElementById('lobbyList');
+      const stats = document.getElementById('playerStats');
+      lobby.innerHTML = ''; stats.innerHTML = '';
       document.querySelectorAll('.pawn').forEach(p => p.remove());
-      ids.forEach(id => {
+
+      Object.keys(ps).forEach(id => {
         const p = ps[id];
+        lobby.innerHTML += `<div style="padding:8px 15px; background:${p.color}44; border:2px solid ${p.color}; border-radius:10px;">${p.icon} ${p.name}</div>`;
+        stats.innerHTML += `<div style="margin-bottom:10px; border-right:5px solid ${p.color}; padding-right:10px;"><b>${p.name}</b><br>משבצת ${p.pos+1}</div>`;
         const pawn = document.createElement('div');
-        pawn.className = 'pawn'; pawn.innerText = "🏗️"; pawn.style.background = p.color;
+        pawn.className = 'pawn'; pawn.innerText = p.icon; pawn.style.background = p.color;
         document.body.appendChild(pawn);
-        const cell = document.getElementById(`cell-${p.pos + 1}`);
-        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top + 8) + "px"; pawn.style.left = (r.left + 8) + "px"; }
+        const cell = document.getElementById(`cell-${p.pos+1}`);
+        if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top+5)+'px'; pawn.style.left = (r.left+5)+'px'; }
       });
-      document.getElementById('playersStatusList').innerHTML = ids.map(id => `<div style="background:var(--card); padding:8px; border-radius:8px; border-right:5px solid ${ps[id].color}; margin-bottom:8px;">${ps[id].name} (${ps[id].pos+1})</div>`).join('');
     });
   }
 
-  function showModalContent(g) {
-    const data = window.gameData[g.activeCell] || { title: "שלב תכנוני" };
+  function showModal(g) {
+    const data = window.gameData.cells[g.activeCell];
     const body = document.getElementById('modalBody');
     document.getElementById('infoModal').style.display = 'flex';
-
-    let html = `<h1>${data.title}</h1><p style="font-size:1.3rem;">${data.info || ""}</p>`;
-
-    if (data.type === 'quiz') {
-      html += `<div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:15px; border:1px solid var(--blue);">`;
-      html += `<h2 style="color:var(--gold);">${data.question}</h2><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">`;
-      data.options.forEach((opt, i) => {
-        let style = "padding:15px; border-radius:10px; border:1px solid rgba(255,255,255,0.2);";
-        if (g.selection !== undefined && g.selection !== null) {
-          if (i === data.correct) style += "background:var(--green); color:black; font-weight:bold;";
-          else if (i === g.selection) style += "background:var(--red);";
+    
+    let html = `<h2 style="color:var(--blue); margin:0;">משבצת ${g.activeCell}</h2><h1>${data.title}</h1><p style="font-size:1.4rem;">${data.info || ""}</p>`;
+    
+    if(data.type === 'quiz' || data.type === 'knowledge') {
+      html += `<div style="background:rgba(0,0,0,0.2); padding:20px; border-radius:20px; border:1px solid var(--blue);">`;
+      html += `<h3>${data.question || "שאלה מהוועדה:"}</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">`;
+      data.options?.forEach((opt, i) => {
+        let cls = "";
+        if(g.selection !== null && g.selection !== undefined) {
+           if(i === data.correct) cls = "correct";
+           else if(i === g.selection) cls = "wrong";
         }
-        // הוספת אפשרות ללחוץ מהמרצה (גיבוי)
-        html += `<div class="clickable-opt" style="${style}" onclick="db.ref('game').update({selection:${i}})">${String.fromCharCode(65+i)}. ${opt}</div>`;
+        html += `<div class="opt ${cls}" onclick="db.ref('game').update({selection:${i}})">${String.fromCharCode(65+i)}. ${opt}</div>`;
       });
-      html += `</div></div>`;
-    } else if (data.type === 'wheel') {
-      html += `<div style="margin:20px;"><div class="${g.state==='wheeling'?'wheel-anim':''}" style="font-size:5rem;">🎡</div>`;
-      if(g.wheelResult) html += `<h2 style="color:var(--gold); animation: pulse 0.5s;">התוצאה: ${g.wheelResult}</h2>`;
-      else html += `<h2>הקבוצה מסובבת את הגלגל...</h2>`;
       html += `</div>`;
+      if(g.selection !== null && g.selection !== undefined) html += `<p style="margin-top:20px; color:var(--gold); font-size:1.2rem;"><b>הסבר:</b> ${data.explanation}</p>`;
+      html += `</div>`;
+    } else if(data.type === 'wheel') {
+      html += `<div class="wheel-box ${g.state==='wheeling'?'spin-anim':''}">🎡</div>`;
+      if(g.wheelResult) html += `<h2 style="color:var(--gold); animation: pulse 0.5s;">${g.wheelResult}</h2>`;
     }
-
-    html += `<button class="btn btn-green" style="margin-top:30px; width:100%;" onclick="closeCell()">סיום תור והמשך ➔</button>`;
+    
+    html += `<button class="btn btn-green" onclick="closeTurn()" style="margin-top:30px; width:100%;">סיים תור ➔</button>`;
     body.innerHTML = html;
   }
 
-  async function handleMovement(turnIdx, roll) {
-    const pSnap = await db.ref('players').once('value');
-    const ps = pSnap.val();
-    const ids = Object.keys(ps || {});
-    const myId = ids[turnIdx];
-    if(!myId) return;
-    const newPos = Math.max(0, Math.min((ps[myId].pos || 0) + roll, 49));
-    await db.ref('players/' + myId).update({ pos: newPos });
-    await db.ref('game').update({ state: 'playing', activeCell: newPos + 1 });
-  }
-
-  function closeCell() {
+  function startGame() { db.ref('game').set({ state: 'playing', turn: 0 }); }
+  function closeTurn() { 
     db.ref('game').once('value', s => {
       db.ref('players').once('value', ps => {
         const ids = Object.keys(ps.val() || {});
-        db.ref('game').update({ activeCell: null, turn: (s.val().turn + 1) % ids.length, lastRoll: 0, selection: null, wheelResult: null });
+        db.ref('game').update({ activeCell: null, selection: null, wheelResult: null, turn: (s.val().turn + 1) % ids.length });
       });
     });
   }
-
-  function startGame() { db.ref('game').update({ state: 'playing', turn: 0 }); }
   function resetSystem() { if(confirm("איפוס מלא?")) db.ref('/').set({ game:{state:'lobby', turn:0}, players:{} }).then(()=>location.reload()); }
 
-  setupQR();
-  listenSystem();
+  setupQR(); initBoard(); listen();
 </script>
 </body>
 </html>
