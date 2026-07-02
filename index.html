@@ -27,6 +27,7 @@
     .wheel-box { position: relative; width: 320px; height: 320px; margin: 20px auto; }
     #wheelSVG { width: 100%; height: 100%; transition: transform 3s cubic-bezier(0.2, 0, 0.2, 1); }
     .wheel-arrow { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid white; z-index: 10; filter: drop-shadow(0 4px 4px black); }
+    @keyframes turnPulse { 0%, 100% { box-shadow: 0 0 0 2px var(--gold); } 50% { box-shadow: 0 0 18px 4px var(--gold); } }
   </style>
 </head>
 <body>
@@ -76,6 +77,9 @@
   firebase.initializeApp(config);
   const db = firebase.database();
 
+  let currentGame = { state: 'lobby', turn: 0, turnOrder: [] };
+  let currentPlayers = {};
+
   function setupQR() {
     let url = window.location.href.split(/[?#]/)[0];
     if (url.endsWith('index.html')) {
@@ -113,36 +117,54 @@
 
   function listen() {
     db.ref('game').on('value', snap => {
-      const g = snap.val() || { state: 'lobby' };
+      const g = snap.val() || { state: 'lobby', turn: 0, turnOrder: [] };
+      currentGame = g;
       document.getElementById('lobbyOverlay').style.display = (g.state === 'lobby') ? 'flex' : 'none';
       document.getElementById('finishOverlay').style.display = (g.state === 'finished') ? 'flex' : 'none';
       if(g.activeCell) showModal(g); else { document.getElementById('infoModal').style.display = 'none'; clearInterval(window.quizTimer); }
+      if(g.selection !== null && g.selection !== undefined) clearInterval(window.quizTimer);
       if(g.lastRoll) document.getElementById('dice').innerText = ["🎲","⚀","⚁","⚂","⚃","⚄","⚅"][g.lastRoll] || "🎲";
       if(g.state === 'wheeling' && g.wheelRotation) {
           const w = document.getElementById('wheelSVG'); if(w) w.style.transform = `rotate(${g.wheelRotation}deg)`;
       }
+      renderPlayers();
     });
 
     db.ref('players').on('value', snap => {
-      const ps = snap.val() || {}; const stats = document.getElementById('playerStats'); const lobby = document.getElementById('lobbyList');
+      currentPlayers = snap.val() || {};
+      renderPlayers();
+    });
+  }
+
+  function renderPlayers() {
+      const ps = currentPlayers; const stats = document.getElementById('playerStats'); const lobby = document.getElementById('lobbyList');
       stats.innerHTML = ''; lobby.innerHTML = ''; document.querySelectorAll('.pawn').forEach(p => p.remove());
       const sortedIds = Object.keys(ps).sort((a,b) => (ps[b].score||0) - (ps[a].score||0));
-      
+      const inGame = currentGame.state !== 'lobby' && currentGame.state !== 'finished';
+      const activeId = (inGame && currentGame.turnOrder) ? currentGame.turnOrder[currentGame.turn] : null;
+
       sortedIds.forEach(id => {
         const p = ps[id];
+        const finished = p.pos >= 49;
+        const isTurn = id === activeId;
         lobby.innerHTML += `<div style="padding:10px 20px; background:${p.color}44; border:2px solid ${p.color}; border-radius:12px;">${p.icon} ${p.name}</div>`;
-        stats.innerHTML += `<div style="padding:12px; border-right:5px solid ${p.color}; background:rgba(255,255,255,0.05); margin-bottom:10px; border-radius:10px;"><b>${p.name}</b><br><span>${p.score || 0} נק'</span> | ${p.pos < 0 ? 'בלובי' : 'משבצת ' + (p.pos+1)}</div>`;
+        stats.innerHTML += `<div style="padding:12px; border-right:5px solid ${p.color}; background:${isTurn ? 'rgba(250,204,21,0.15)' : 'rgba(255,255,255,0.05)'}; margin-bottom:10px; border-radius:10px; ${isTurn ? 'animation: turnPulse 1.5s infinite;' : ''}">
+            <b>${p.name}</b> ${isTurn ? '<span style="color:var(--gold);"> 🎯 תורם עכשיו!</span>' : ''}<br>
+            <span>${p.score || 0} נק'</span> | ${finished ? '🏁 סיים/ה את המסלול' : (p.pos < 0 ? 'בלובי' : 'משבצת ' + (p.pos+1))}
+        </div>`;
         if(p.pos >= 0) {
             const pawn = document.createElement('div'); pawn.className = 'pawn'; pawn.innerText = p.icon; pawn.style.background = p.color;
+            if(isTurn) pawn.style.boxShadow = '0 0 0 4px var(--gold), 0 5px 15px black';
             document.body.appendChild(pawn); const cell = document.getElementById(`cell-${p.pos+1}`);
             if(cell) { const r = cell.getBoundingClientRect(); pawn.style.top = (r.top+5)+'px'; pawn.style.left = (r.left+5)+'px'; }
         }
       });
-      if(sortedIds.length > 0 && sortedIds.every(id => ps[id].pos >= 49)) {
+
+      const order = currentGame.turnOrder || [];
+      if(order.length > 0 && order.every(id => ps[id] && ps[id].pos >= 49)) {
           db.ref('game').update({ state: 'finished' });
           document.getElementById('finalRanking').innerHTML = sortedIds.map((id, i) => `<div style="margin:10px 0;">#${i+1} ${ps[id].icon} ${ps[id].name} - ${ps[id].score} נקודות</div>`).join('');
       }
-    });
   }
 
   function showModal(g) {
@@ -185,9 +207,19 @@
     }, 100);
   }
 
-  function closeTurn() { 
+  function closeTurn() {
     db.ref('game').once('value', s => {
-      const g = s.val(); db.ref('game').update({ activeCell: null, selection: null, startTime: null, wheelResult: null, wheelRotation: 0, turn: (g.turn + 1) % g.turnOrder.length });
+      const g = s.val();
+      db.ref('players').once('value', ps => {
+        const players = ps.val() || {}; const order = g.turnOrder || [];
+        let nextTurn = (g.turn + 1) % order.length;
+        for(let i = 0; i < order.length; i++) {
+          const p = players[order[nextTurn]];
+          if(!p || p.pos < 49) break;
+          nextTurn = (nextTurn + 1) % order.length;
+        }
+        db.ref('game').update({ activeCell: null, selection: null, startTime: null, wheelResult: null, wheelRotation: 0, turn: nextTurn });
+      });
     });
   }
 

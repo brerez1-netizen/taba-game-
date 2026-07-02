@@ -53,6 +53,8 @@
   const db = firebase.database();
   let myId = localStorage.getItem('game_id') || ("p_" + Date.now());
   let selectedIcon = "🏗️";
+  let currentGame = { turn: 0, turnOrder: [] };
+  let currentPlayers = {};
 
   function initChars() {
     if(!window.gameData) return setTimeout(initChars, 400);
@@ -72,22 +74,24 @@
 
   function showGame() {
     document.getElementById('setupView').style.display = 'none'; document.getElementById('gameView').style.display = 'block';
-    db.ref('game').on('value', snap => {
-      const g = snap.val() || { turn: 0, turnOrder: [] };
-      db.ref('players').on('value', psSnap => {
-        const ps = psSnap.val() || {}; const me = ps[myId]; if(!me) return;
-        const isMyTurn = g.turnOrder && g.turnOrder[g.turn] === myId;
-        document.getElementById('myName').innerText = me.icon + " " + me.name + " (" + (me.score || 0) + ")";
-        document.getElementById('status-msg').innerText = isMyTurn ? "תורך הגיע! 🌟" : "המתן...";
-        const data = window.gameData.cells[g.activeCell];
-        document.getElementById('rollBtn').style.display = (isMyTurn && !g.activeCell) ? 'block' : 'none';
-        document.getElementById('quizArea').style.display = (isMyTurn && data?.type === 'quiz' && (g.selection === null || g.selection === undefined)) ? 'block' : 'none';
-        document.getElementById('wheelArea').style.display = (isMyTurn && data?.type === 'wheel' && !g.wheelResult) ? 'block' : 'none';
-      });
-    });
+    db.ref('game').on('value', snap => { currentGame = snap.val() || { turn: 0, turnOrder: [] }; render(); });
+    db.ref('players').on('value', snap => { currentPlayers = snap.val() || {}; render(); });
   }
 
-  function roll() { 
+  function render() {
+    const g = currentGame; const ps = currentPlayers; const me = ps[myId]; if(!me) return;
+    const isMyTurn = g.turnOrder && g.turnOrder[g.turn] === myId;
+    const finished = me.pos >= 49;
+    document.getElementById('myName').innerText = me.icon + " " + me.name + " (" + (me.score || 0) + ")";
+    document.getElementById('status-msg').innerText = finished ? "סיימת את המסלול! 🏁 ממתינים לשאר הקבוצות..." : (isMyTurn ? "תורך הגיע! 🌟" : "המתן...");
+    const data = window.gameData.cells[g.activeCell];
+    document.getElementById('rollBtn').style.display = (isMyTurn && !finished && !g.activeCell) ? 'block' : 'none';
+    document.getElementById('quizArea').style.display = (isMyTurn && data?.type === 'quiz' && (g.selection === null || g.selection === undefined)) ? 'block' : 'none';
+    document.getElementById('wheelArea').style.display = (isMyTurn && data?.type === 'wheel' && !g.wheelResult) ? 'block' : 'none';
+  }
+
+  function roll() {
+    if((currentPlayers[myId]?.pos ?? -1) >= 49) return;
     const r = Math.floor(Math.random()*6)+1;
     db.ref('game').update({ state: 'moving', lastRoll: r, selection: null, wheelResult: null });
     db.ref('players/'+myId).once('value', s => {
@@ -101,7 +105,8 @@
   async function sendAns(idx) {
     const gSnap = await db.ref('game').once('value'); const g = gSnap.val();
     const data = window.gameData.cells[g.activeCell]; const pSnap = await db.ref('players/' + myId).once('value'); const p = pSnap.val();
-    let bonus = (idx === data.correct) ? Math.max(50, 100 - Math.round(((Date.now() - g.startTime)/1000)*3)) : 0;
+    const elapsed = g.startTime ? (Date.now() - g.startTime) / 1000 : 0;
+    let bonus = (idx === data.correct) ? Math.max(50, 100 - Math.round(elapsed*3)) : 0;
     const move = (idx === data.correct) ? (data.correctMove || 0) : (data.wrongMove || 0);
     await db.ref('players/' + myId).update({ score: (p.score || 0) + bonus, pos: Math.max(0, Math.min(p.pos + move, 49)) });
     db.ref('game').update({ selection: idx });
