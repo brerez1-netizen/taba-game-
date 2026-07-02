@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🏙️ מסלול התב"ע - תרגול אישי</title>
+  <script src="js/gameData.js?v=1"></script>
+  <style>
+    :root { --blue: #38bdf8; --gold: #facc15; --bg: #020617; --card: #1e293b; --red: #ef4444; --green: #22c55e; }
+    html, body { margin: 0; background: var(--bg); color: #e5f4ff; font-family: system-ui; touch-action: manipulation; }
+    body { padding: 16px; padding-bottom: 60px; }
+    h1, h2, h3 { margin: 0 0 10px; }
+    .top { text-align: center; margin-bottom: 14px; }
+    .top h1 { font-size: 1.6rem; color: var(--blue); }
+    .progress-wrap { background: var(--card); border-radius: 20px; height: 16px; overflow: hidden; margin: 10px 0 4px; }
+    .progress-bar { background: var(--gold); height: 100%; transition: width .6s; }
+    .progress-label { font-size: 0.85rem; color: #94a3b8; display: flex; justify-content: space-between; }
+    .card { background: var(--card); border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; margin-top: 16px; }
+    .card-img { width: 100%; aspect-ratio: 16/10; background-size: cover; background-position: center; background-color: #0f172a; }
+    .card-body { padding: 22px; text-align: right; }
+    .card-body p { font-size: 1.15rem; line-height: 1.6; }
+    .btn { background: var(--blue); color: black; border: none; padding: 22px; border-radius: 20px; font-size: 1.5rem; font-weight: bold; width: 100%; margin-top: 14px; box-shadow: 0 6px 0 #0369a1; cursor: pointer; }
+    .btn.green { background: var(--green); box-shadow: 0 6px 0 #166534; }
+    .btn.gold { background: var(--gold); box-shadow: 0 6px 0 #a16207; }
+    .opt-btn { display: block; width: 100%; text-align: right; padding: 18px; border-radius: 16px; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: white; font-size: 1.15rem; margin-top: 10px; cursor: pointer; }
+    .opt-btn.correct { background: var(--green) !important; color: black; font-weight: bold; border-color: var(--green); }
+    .opt-btn.wrong { background: var(--red) !important; color: white; border-color: var(--red); }
+    .opt-btn:disabled { cursor: default; }
+    .explanation { color: var(--gold); margin-top: 16px; font-size: 1.05rem; background: rgba(250,204,21,0.08); padding: 14px; border-radius: 14px; }
+    .wheel-box { position: relative; width: 240px; height: 240px; margin: 10px auto; }
+    #wheelSVG { width: 100%; height: 100%; transition: transform 3s cubic-bezier(0.2, 0, 0.2, 1); }
+    .wheel-arrow { position: absolute; top: -8px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 28px solid white; z-index: 10; filter: drop-shadow(0 4px 4px black); }
+    .mistake-row { text-align: right; background: rgba(255,255,255,0.04); border-radius: 14px; padding: 14px; margin-top: 10px; }
+    .mistake-row b { color: var(--gold); }
+    .reset-link { display: block; text-align: center; color: #64748b; margin-top: 22px; background: none; border: none; text-decoration: underline; cursor: pointer; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>🏙️ מסלול התב"ע — תרגול אישי</h1>
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    <div class="progress-label"><span id="posLabel">לפני התחלה</span><span id="scoreLabel">0 נק'</span></div>
+  </div>
+
+  <div id="app"></div>
+
+  <button class="reset-link" onclick="resetGame()">🔄 התחל תרגול מחדש</button>
+
+<script>
+  const STORAGE_KEY = 'solo_progress_taba';
+  const labels = ['א', 'ב', 'ג', 'ד'];
+
+  function load() {
+    try { const s = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (s && typeof s.pos === 'number') return s; } catch (e) {}
+    return { pos: -1, score: 0, mistakes: [], activeCell: null, selection: null, wheelOutcome: null };
+  }
+  let state = load();
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function resetGame() {
+    if (!confirm('להתחיל את התרגול מחדש? ההתקדמות הנוכחית תימחק.')) return;
+    state = { pos: -1, score: 0, mistakes: [], activeCell: null, selection: null, wheelOutcome: null };
+    save(); render();
+  }
+
+  function roll() {
+    const r = Math.floor(Math.random() * 6) + 1;
+    state.pos = Math.min((state.pos < 0 ? -1 : state.pos) + r, 49);
+    state.activeCell = state.pos + 1;
+    state.selection = null;
+    state.wheelOutcome = null;
+    save(); render();
+  }
+
+  function sendAns(idx) {
+    const data = window.gameData.cells[state.activeCell];
+    const correct = idx === data.correct;
+    state.score += correct ? 100 : 0;
+    state.pos = Math.max(0, Math.min(state.pos + (correct ? (data.correctMove || 0) : (data.wrongMove || 0)), 49));
+    state.selection = idx;
+    if (!correct) {
+      state.mistakes.push({ cell: state.activeCell, title: data.title, question: data.question, correctText: data.options[data.correct] });
+    }
+    save(); render();
+  }
+
+  function spin() {
+    const rot = 1440 + Math.floor(Math.random() * 360);
+    state.spinning = rot;
+    save(); render();
+    setTimeout(() => {
+      const data = window.gameData.cells[state.activeCell];
+      const normalized = rot % 360;
+      const resIndex = (normalized < 120) ? 0 : (normalized < 240 ? 1 : 2);
+      const res = data.outcomes[resIndex];
+      state.pos = Math.max(0, Math.min(state.pos + res.move, 49));
+      state.wheelOutcome = res.text;
+      state.spinning = null;
+      save(); render();
+    }, 3100);
+  }
+
+  function closeCell() {
+    state.activeCell = null; state.selection = null; state.wheelOutcome = null; state.spinning = null;
+    save(); render();
+  }
+
+  function render() {
+    document.getElementById('progressBar').style.width = (Math.max(state.pos, 0) / 49 * 100) + '%';
+    document.getElementById('posLabel').innerText = state.pos < 0 ? 'לפני התחלה' : (state.pos >= 49 ? 'סיימת! 🏁' : `משבצת ${state.pos + 1} מתוך 50`);
+    document.getElementById('scoreLabel').innerText = state.score + " נק'";
+
+    const app = document.getElementById('app');
+
+    if (state.pos >= 49 && !state.activeCell) {
+      app.innerHTML = renderFinish();
+      return;
+    }
+
+    if (!state.activeCell) {
+      app.innerHTML = `
+        <div class="card"><div class="card-body" style="text-align:center;">
+          <p>${state.pos < 0 ? 'מוכנים להתחיל?' : 'בהצלחה בהמשך!'}</p>
+          <button class="btn green" onclick="roll()">🎲 הטל קובייה</button>
+        </div></div>`;
+      return;
+    }
+
+    const data = window.gameData.cells[state.activeCell];
+    let html = `<div class="card">
+      <div class="card-img" style="background-image:url('images/${state.activeCell}.jpeg')"></div>
+      <div class="card-body">
+        <h2 style="color:var(--blue);">משבצת ${state.activeCell}</h2>
+        <h3>${data.title}</h3>
+        <p>${data.info}</p>`;
+
+    if (data.type === 'quiz') {
+      const answered = state.selection !== null && state.selection !== undefined;
+      html += `<h3>${data.question}</h3>`;
+      data.options.forEach((opt, i) => {
+        let cls = ''; if (answered) { if (i === data.correct) cls = 'correct'; else if (i === state.selection) cls = 'wrong'; }
+        html += `<button class="opt-btn ${cls}" ${answered ? 'disabled' : ''} onclick="sendAns(${i})">${labels[i]}. ${opt}</button>`;
+      });
+      if (answered) html += `<div class="explanation"><b>הסבר לימודי:</b> ${data.explanation}</div>`;
+    } else if (data.type === 'wheel') {
+      html += `<div class="wheel-box"><div class="wheel-arrow"></div><svg id="wheelSVG" viewBox="0 0 100 100" style="${state.spinning ? `transform:rotate(${state.spinning}deg)` : ''}">
+                <path d="M50 50 L50 0 A50 50 0 0 1 93.3 25 Z" fill="var(--green)"/>
+                <path d="M50 50 L93.3 25 A50 50 0 0 1 93.3 75 Z" fill="var(--gold)"/>
+                <path d="M50 50 L93.3 75 A50 50 0 0 1 50 100 Z" fill="var(--red)"/>
+                <path d="M50 50 L50 100 A50 50 0 0 1 6.7 75 Z" fill="var(--green)"/>
+                <path d="M50 50 L6.7 75 A50 50 0 0 1 6.7 25 Z" fill="var(--gold)"/>
+                <path d="M50 50 L6.7 25 A50 50 0 0 1 50 0 Z" fill="var(--red)"/>
+            </svg></div>`;
+      if (state.wheelOutcome) html += `<h2 style="color:var(--gold); text-align:center;">תוצאה: ${state.wheelOutcome}</h2>`;
+      else if (!state.spinning) html += `<button class="btn gold" onclick="spin()">🎡 סובב גלגל!</button>`;
+    }
+
+    const canContinue = data.type === 'regular' || (data.type === 'quiz' && state.selection !== null && state.selection !== undefined) || (data.type === 'wheel' && state.wheelOutcome);
+    if (canContinue) html += `<button class="btn green" onclick="closeCell()">המשך ➔</button>`;
+
+    html += `</div></div>`;
+    app.innerHTML = html;
+  }
+
+  function renderFinish() {
+    const total = state.score;
+    const mistakesHtml = state.mistakes.length === 0
+      ? `<p style="text-align:center; font-size:1.2rem; color:var(--gold);">🌟 עניתם נכון על כל השאלות!</p>`
+      : state.mistakes.map(m => `<div class="mistake-row">משבצת ${m.cell} — <b>${m.title}</b><br>${m.question}<br>התשובה הנכונה: <b>${m.correctText}</b></div>`).join('');
+    return `<div class="card"><div class="card-body" style="text-align:center;">
+        <h2 style="color:var(--gold); font-size:2rem;">🎉 סיימתם את התרגול!</h2>
+        <p style="font-size:1.4rem;">ניקוד סופי: <b>${total}</b> נק'</p>
+      </div></div>
+      <h3 style="margin-top:20px;">${state.mistakes.length > 0 ? 'כדאי לחזור על:' : ''}</h3>
+      ${mistakesHtml}`;
+  }
+
+  function init() {
+    if (!window.gameData) return setTimeout(init, 300);
+    render();
+  }
+  init();
+</script>
+</body>
+</html>
