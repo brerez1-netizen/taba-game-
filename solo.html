@@ -37,7 +37,7 @@
 </head>
 <body>
   <div class="top">
-    <h1>🏙️ מסלול התב"ע — תרגול אישי</h1>
+    <h1>🏙️ מסלול התב"ע - תרגול אישי</h1>
     <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
     <div class="progress-label"><span id="posLabel">לפני התחלה</span><span id="scoreLabel">0 נק'</span></div>
   </div>
@@ -166,7 +166,7 @@
     const total = state.score;
     const mistakesHtml = state.mistakes.length === 0
       ? `<p style="text-align:center; font-size:1.2rem; color:var(--gold);">🌟 עניתם נכון על כל השאלות!</p>`
-      : state.mistakes.map(m => `<div class="mistake-row">משבצת ${m.cell} — <b>${m.title}</b><br>${m.question}<br>התשובה הנכונה: <b>${m.correctText}</b></div>`).join('');
+      : state.mistakes.map(m => `<div class="mistake-row">משבצת ${m.cell} - <b>${m.title}</b><br>${m.question}<br>התשובה הנכונה: <b>${m.correctText}</b></div>`).join('');
     return `<div class="card"><div class="card-body" style="text-align:center;">
         <h2 style="color:var(--gold); font-size:2rem;">🎉 סיימתם את התרגול!</h2>
         <p style="font-size:1.4rem;">ניקוד סופי: <b>${total}</b> נק'</p>
